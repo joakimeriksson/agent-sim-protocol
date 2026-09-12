@@ -219,7 +219,8 @@ Do not allow an agent to "optimize" application/network code around a simulator 
 ## Phase 9 — Research-agent workflows
 
 Demonstrations beyond pass/fail. These are agent orchestration on top of the runner, not
-simulator features, and live outside the simulator repo:
+simulator features, and live outside the simulator repo. The first two are the M5 headline
+demos in `ROADMAP.md`:
 
 - optimize RPL parameters over multiple topologies/seeds;
 - find the minimum interference that causes a reliability requirement to fail;
@@ -250,16 +251,20 @@ node-scoped entries in `events.ndjson`, `result.json` and the bundle. This needs
 
 ## Priorities
 
+Cooja-NG leads the protocol work (`ROADMAP.md` §2): it is the research and test bench for
+Contiki-NG, and metrics are the payoff.
+
 1. `result.json`, run directory, replay file, exit-code table, no silent medium fallback (Phase 1)
 2. `events.ndjson` export (Phase 2)
-3. energest metrics with definitions; decide the PDR/latency source (Phase 4)
+3. energest metrics with definitions; PDR, latency and route churn over log conventions (Phase 4)
 4. `metric` conditions and multi-seed aggregate (Phase 5)
-5. capabilities with limitations (Phase 6)
-6. new actions: link loss, injection, node reset (Phase 3)
-7. bundle and `AGENTS.md` escalation workflow (Phases 7, 8)
-8. nested-node diagnostics through lock-step (Phase 10)
-9. protocol session mode, MCP adapter
-10. research demos (Phase 9)
+5. corpus check: how many of the 93 upstream Contiki-NG tests fit `expect` and `invariants` without JS (Phase 5)
+6. capabilities with limitations (Phase 6)
+7. new actions: link loss, injection, node reset (Phase 3)
+8. bundle and `AGENTS.md` escalation workflow (Phases 7, 8)
+9. research demos: minimum interference over seeds, regression bisect (Phase 9)
+10. nested-node diagnostics through lock-step (Phase 10)
+11. protocol session mode, per-action MCP tools
 
 ## Success criteria
 

@@ -97,10 +97,20 @@ conformance checker, the client and this roadmap.
 
 ## 2. Implementation order
 
-Batch CLI first in both simulators, streaming session second, and only in esp32sim at first.
-The batch form carries most of the agent value and is the conformance surface. Each milestone
-ends with both simulators passing `conformance/check.py` on the same spec version and the
-Python client running one scenario on each.
+Cooja-NG leads. It is the research and test bench for Contiki-NG, it is where metrics and
+multi-seed evaluation live, and its M1 is the smaller one: configs, seeds, actions, sequential
+steps, `fail_on` and the exit contract already exist, so M1 is a formatter on the observer
+stream, a `result.json` writer and capabilities from registries that exist. esp32sim follows
+once Cooja-NG's real output has settled the schemas, so it implements against recorded vectors
+rather than hand-written ones.
+
+Batch CLI first, streaming session last. The batch form carries most of the agent value and is
+the conformance surface. Each milestone ends with both simulators passing `conformance/check.py`
+on the same spec version and the Python client running one scenario on each.
+
+Order of work: M1 (Cooja-NG, then esp32sim) → M4 metrics and multi-seed (Cooja-NG only) → M2
+conditions (Cooja-NG, then esp32sim) → M3 → M5 → M6. The milestone numbers are kept as names;
+the sequence is what changed.
 
 Sizes are relative: S is a day or two, M a week, L more, with a coding agent doing most of it.
 
@@ -111,14 +121,17 @@ Goal: both simulators produce `capabilities --json`, a run directory with `resul
 shared table, for one existing scenario each. The conformance checker and Python client exist
 and pass.
 
-Spec repo (S): `schema/envelope.json`, `capabilities.json` (real JSON Schema for action
-arguments, `observables`, `scenario_schema`, `limitations`), `result.json` (`verdict`,
-`termination_reason`), `events.json` for `log`, `gpio`, `tx`, `rx`, `radio`, `exception`,
-`unimplemented_access`, `stub`, all with `node`; `replay.json`; `check.py`; one recorded vector
-per simulator as soon as it produces output, plus one hand-written negative vector; the client's
-spawn, hello, capabilities and run-directory reading; `AGENTS.md`.
+Spec repo (S), built first and marked provisional: `schema/envelope.json`,
+`capabilities.json` (real JSON Schema for action arguments, `observables`, `scenario_schema`,
+`limitations`), `result.json` (`verdict`, `termination_reason`), `events.json` for `log`,
+`gpio`, `tx`, `rx`, `radio`, `exception`, `unimplemented_access`, `stub`, all with `node`;
+`replay.json`; `check.py`; one hand-written vector per simulator showing the intended M1 output
+and a few negative vectors that must fail; the client's spawn, hello, capabilities and
+run-directory reading; `AGENTS.md`. The first real Cooja-NG output replaces its hand-written
+vector, and every disagreement is settled by changing the schema or the simulator, never by
+loosening the checker.
 
-csim (M):
+csim (M), first:
 - a `json_export` service (`src/services/`, implementing `sim_service_ops_t` like
   `pcap_service.c` and `timeline_service.c`) that serializes every `SIM_OBS_*` event to
   `events.ndjson`. The kernel already delivers them; this is a formatter. The record/replay
@@ -137,7 +150,7 @@ csim (M):
 - exit codes mapped in `test_runner` main.
 - a CI step running `check.py` on `configs/chain-4node-sky.yaml`'s output.
 
-esp32sim (M):
+esp32sim (M), after Cooja-NG's vector is recorded:
 - subcommands in `cli/src/lib.rs`: `capabilities`, `describe`, `run`; the existing flag-style
   invocation stays as-is for bare firmware runs.
 - a `json` observer in `esp-soc/src/observers/` next to `vcd.rs` and `trace.rs`: console lines
@@ -155,10 +168,16 @@ esp32sim (M):
   byte, `result.json` with wall time, commit and run directory stripped.
 - a CI step running `check.py`.
 
-Exit criterion: `agentsim run esp32sim examples/esp32sim-button.yaml` and
-`agentsim run cooja-ng examples/cooja-ng-rpl-chain.yaml` both return a validated `result.json`.
+Exit criterion: `agentsim run cooja-ng examples/cooja-ng-rpl-chain.yaml` returns a validated
+`result.json` and its output is the recorded vector; then the same for
+`agentsim run esp32sim examples/esp32sim-button.yaml`.
 
 ### M2 — Conditions and scenarios (M+M)
+
+Comes after M4 in the sequence. Its first task is the corpus check: convert the 93 upstream
+Contiki-NG Cooja tests (`tools/csc2json.py` already does) and count how many express fully in
+`expect` and `invariants` and how many need the JS escape hatch. That number is the validation
+of the closed condition set; if it is poor, the set changes before esp32sim implements it.
 
 Goal: the shared closed condition set works in both with the evaluation windows in `SPEC.md`,
 `expect` is sequential and `invariants` are run-wide, a failed `expect` returns expected,
@@ -169,7 +188,8 @@ Spec repo (S): `schema/conditions.json` with the window rules, `scenario-common.
 `expect` and `invariants`; `run_until` and `wall_ms` semantics written down from what the
 implementations did; vectors for a failing `expect` and a hit invariant from each simulator.
 
-csim (S to M):
+csim (S to M), first:
+- the corpus check above, reported in the spec repo as a table.
 - map the existing `wait` + `count` steps onto `expect` and `fail_on` onto `invariants` in
   `result.json`, so the report speaks the shared vocabulary. The steps are already sequential
   with the right windows. No change to the config format yet.
@@ -178,7 +198,7 @@ csim (S to M):
 - `--wall-timeout`.
 - `metric` conditions wait for M4.
 
-esp32sim (M):
+esp32sim (M), after the corpus check has settled the set:
 - a YAML scenario loader that produces the existing `Script` events plus `expect` and
   `invariants`; keep the `--script` verbs as the action names.
 - a condition observer in the scheduled run loop, next to where script events already stop the
@@ -211,26 +231,33 @@ run reports the experiment seed.
 
 ### M4 — Metrics and multi-seed in Cooja-NG (M)
 
-csim only. Energest duty cycle and energy into `result.json` with definition strings. PDR,
-latency and route churn over Contiki-NG log conventions, definitions stated. `seeds: [...]`
-loop in `test_runner` with one run directory per seed and an aggregate `result.json`. `metric`
-conditions. The spec repo adds `schema/metrics.json` as provisional until esp32sim has any metric
-at all (instruction count and simulation time qualify).
+Directly after Cooja-NG's M1, before M2: this is the research payoff and the part a coding agent
+cannot approximate with grep. csim only. Energest duty cycle and energy into `result.json` with
+definition strings. PDR, latency and route churn over Contiki-NG log conventions, definitions
+stated. `seeds: [...]` loop in `test_runner` with one run directory per seed and an aggregate
+`result.json` that never conceals a failed seed. `metric` conditions in `expect`. The spec repo
+adds `schema/metrics.json` as provisional until esp32sim has any metric at all (instruction
+count and simulation time qualify).
 
-### M5 — MCP adapter and the agent demo (S+M)
+Exit criterion: one config, five seeds, an aggregate `result.json` with PDR, p95 latency and
+duty cycle per seed and overall, each metric carrying its definition.
+
+### M5 — MCP adapter and the demos (S+M+M)
 
 Spec repo (S): `mcp_adapter.py`, batch-shaped: `capabilities`, `describe`, `run` (a scenario
 file), `read_result` and `diagnose`, generated from `capabilities` for either simulator and
 checked against both. It needs no session. Per-action and `run_until` tools arrive with M6.
 
-esp32sim (M): the deliberately broken ESP-IDF project under `examples/`, the acceptance run
-with a fresh agent given only `capabilities --json`, and the second demo that exposes a known
-emulator defect and ends in a regression plus fix. Both demos record the loop metrics from
-section 0: wall time per iteration split into build, run and agent time, and iterations to a
-passing test.
+csim (M), the headline demo: a research agent driven by the Python client finds the minimum
+interference (Gilbert-Elliott medium parameters) that breaks a PDR requirement over five seeds,
+and reports the experiment definition, the per-seed results and the evidence bundle, not only
+the number. A second Cooja-NG demo bisects a Contiki-NG regression between two commits with the
+same scenario. Both record the loop metrics from section 0.
 
-csim (S): a research-style demo driven by the Python client: minimum interference that breaks a
-PDR requirement over five seeds.
+esp32sim (M), the loop-closure proof: the deliberately broken ESP-IDF project under
+`examples/`, the acceptance run with a fresh agent given only `capabilities --json`, and the
+second demo that exposes a known emulator defect and ends in a regression plus fix. Both record
+the loop metrics.
 
 ### M6 — Streaming session and nested diagnostics (M+M)
 
@@ -251,10 +278,11 @@ and `run_until` MCP tools added to the adapter; vectors recorded from both.
 
 ## 3. Sequencing across the two repos
 
-Work M1 in both simulators in parallel; the schemas are small enough to draft in a day and
-fix as the two implementations disagree. From M2 onward, esp32sim leads on conditions and the
-session, csim leads on metrics and multi-seed, and each milestone closes only when the other
-simulator has caught up or the feature is marked provisional.
+Cooja-NG leads every milestone that has a Cooja-NG part; esp32sim follows once the schemas have
+been settled by real Cooja-NG output. The exceptions are esp32sim-only items (ROM onboarding,
+the firmware repair demo, the session in M6), which run whenever esp32sim has capacity. Each
+milestone closes only when the other simulator has caught up or the feature is marked
+provisional.
 
 Keep the three determinism bars: csim's byte-identical seed runs, esp32sim's goldens, and the
 lock-step `cooja-*.ndjson` tests. Every new output is a golden in esp32sim and a CI-checked
@@ -262,9 +290,10 @@ config in csim before it is called done.
 
 ## 4. Risks
 
-- **csim scope.** The repo carries several open plans (Renode, RISC-V, Zephyr, TrustZone). The
-  agent work is formatter-and-reporting work on the existing kernel, and should stay that way;
-  anything that needs a kernel change goes through `refactor-plan.md` first.
+- **csim scope.** The repo carries several open plans (Renode, RISC-V, Zephyr, TrustZone) and
+  is the research bench this tooling is meant to serve. The agent work is formatter-and-
+  reporting work on the existing kernel, and must stay that way; anything that needs a kernel
+  change goes through `refactor-plan.md` first, so the tooling never destabilises the bench.
 - **Output interleaving in esp32sim.** Console text and JSON on one stdout will break goldens
   and agents alike. Events go to the run directory; stdout stays the console unless `--json`
   replaces it entirely.

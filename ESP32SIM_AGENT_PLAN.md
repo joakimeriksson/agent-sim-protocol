@@ -217,6 +217,10 @@ Once `test` and `--json` are stable:
 
 ## Priorities
 
+esp32sim follows Cooja-NG on the shared protocol work (`ROADMAP.md` §2) and implements against
+recorded Cooja-NG vectors. Phase 0 and the demo are esp32sim-only and run whenever there is
+capacity.
+
 1. ROM discovery and error, install path (Phase 0)
 2. run directory, `events.ndjson`, `result.json`, exit codes (Phase 1)
 3. scenario file with `expect` and `invariants`, replay file (Phase 2)

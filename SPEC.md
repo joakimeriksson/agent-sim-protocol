@@ -403,7 +403,7 @@ above; replay is a scenario file; exit codes distinguish assertion, guest failur
 
 Still open. Implement in both simulators and answer:
 
-1. Is the closed condition set sufficient for the demos, or does esp32sim also need a scripted escape hatch?
+1. Is the closed condition set sufficient? Measured on the 93 upstream Contiki-NG Cooja tests: how many express fully in `expect` and `invariants`, how many need JS. Does esp32sim also need a scripted escape hatch?
 2. Which operations need a persistent session, versus the batch CLI? (Guess: only interactive debugging.)
 3. Which metric concepts belong in the protocol versus simulator-specific namespaces?
 4. Do generated MCP tools from capability schemas work without manual editing?

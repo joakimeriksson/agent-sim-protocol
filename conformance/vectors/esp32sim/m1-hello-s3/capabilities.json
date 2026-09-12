@@ -1,0 +1,29 @@
+{
+  "protocol": "agent-sim/0.3",
+  "simulator": "esp32sim",
+  "version": "0.4.1",
+  "commit": "2873374",
+  "targets": ["esp32s3", "esp32c3", "esp32c6"],
+  "operations": ["describe", "configure", "reset", "run_until", "action", "observe", "diagnose"],
+  "actions": {
+    "gpio":    { "description": "drive a GPIO input", "schema": { "type": "object", "required": ["pin", "value"], "properties": { "pin": { "type": "integer", "minimum": 0, "maximum": 48 }, "value": { "enum": [0, 1] } } } },
+    "press":   { "description": "press a board button for ms (active low)", "schema": { "type": "object", "required": ["button"], "properties": { "button": { "type": "string" }, "ms": { "type": "integer", "minimum": 1, "default": 150 } } } },
+    "release": { "description": "release a board button or GPIO", "schema": { "type": "object", "required": ["button"], "properties": { "button": { "type": "string" } } } },
+    "knob":    { "description": "turn the encoder", "schema": { "type": "object", "required": ["dir", "detents"], "properties": { "dir": { "enum": ["cw", "ccw"] }, "detents": { "type": "integer", "minimum": 1 } } } },
+    "serial":  { "description": "bytes into the USB-Serial/JTAG console", "schema": { "type": "object", "required": ["data"], "properties": { "data": { "type": "string" } } } },
+    "uart0":   { "description": "a line into UART0's receive FIFO", "schema": { "type": "object", "required": ["data"], "properties": { "data": { "type": "string" } } } },
+    "touch":   { "description": "touch panel press/release at x,y", "schema": { "type": "object", "required": ["x", "y", "down"], "properties": { "x": { "type": "integer" }, "y": { "type": "integer" }, "down": { "enum": [0, 1] } } } }
+  },
+  "observations": ["log", "serial", "gpio", "led", "exception", "unimplemented_access", "stub", "action"],
+  "observables": ["gpio", "memory", "core.registers"],
+  "conditions": ["log_contains", "log_matches", "event_count", "no_event", "gpio_level", "time", "probe_reached", "memory_value"],
+  "metrics": {},
+  "scenario_schema": "share/esp32sim/scenario.schema.json",
+  "determinism": { "deterministic": true, "seedable": false, "breaks_with": ["--net nat", "--realtime"] },
+  "nestable": true,
+  "limitations": {
+    "stubs": [],
+    "unmodelled": ["esp32s3: BLE, WiFi 6, LP core", "esp32c6: watchdogs never fire, TF card, LEDC PWM, PHY baseband calibration (stub bb_init=0 when requested)"],
+    "notes": ["the cycle-exact path (run_until_cycle) is single-core; run_until on the S3 schedules both cores through the block path"]
+  }
+}

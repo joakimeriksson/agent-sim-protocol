@@ -1,0 +1,19 @@
+# Agent Simulation Protocol example for esp32sim (agent-sim/0.3, provisional).
+# Run: esp32sim run examples/esp32sim-button.yaml --run-dir out/button
+chip: esp32s3
+board: atech14
+firmware: build/app.bin
+elf: build/app.elf
+max_seconds: 5
+
+actions:                          # the existing --script verbs, with at_ms
+  - { at_ms: 1000, gpio:  { pin: 4, value: 0 } }
+  - { at_ms: 1500, press: { button: btn1, ms: 150 } }
+
+expect:                           # sequential
+  - log_contains: { text: "button pressed" }
+  - gpio_level:   { pin: 5, value: 1, within_ms: 200 }
+
+invariants:                       # run-wide
+  - no_event: { type: exception }
+  - no_event: { type: unimplemented_access }

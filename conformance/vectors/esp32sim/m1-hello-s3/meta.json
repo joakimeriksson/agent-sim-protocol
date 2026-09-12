@@ -1,0 +1,2 @@
+{ "source": "hand-written", "spec": "agent-sim/0.3", "simulator": "esp32sim",
+  "note": "intended M1 output of `esp32sim run` on the hello-s3 golden; replace with a recorded run" }

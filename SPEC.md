@@ -308,7 +308,12 @@ fetch operation is needed.
 ```
 
 Every run writes at least `events.ndjson`, `scenario.replay.yaml`, `config.effective.yaml`
-(what actually ran, with the effective seed and version) and `result.json`. Traces, VCD, pcap,
+(what actually ran, with the effective seed and version) and `result.json`. In a response,
+`artifacts` is a list of `{type, path}`; in `result.json` it is an object keyed by name with
+`events` and `replay` always present. `result.json` lists every `expect` entry and invariant
+under `conditions` as `{kind, condition, ok, t}`; `ok` means reached for an `expect` and never
+hit for an invariant. The schemas under `schema/` are the normative form of all of this, and
+`conformance/check.py` enforces the rules the schemas cannot express. Traces, VCD, pcap,
 coverage, register accesses and metric inputs are added on request or on failure.
 
 `result.json` carries fields that vary between identical runs (wall time, commit, the run
@@ -346,6 +351,9 @@ tells an agent in a shell loop the class without opening `result.json`:
 | `guest_failure` | 5 | panic, exception, or the guest's own FAIL line |
 | `timeout` | 6 | the condition was not reached in simulation or wall time |
 | `cancelled` | 7 | stopped by `cancel` or a signal |
+
+A `completed` run whose verdict is `inconclusive` (a metric unavailable) exits 1, the assertion
+class: it is not a pass and the guest did nothing wrong.
 
 Exit code 3 exists so agents do not treat unsupported simulator behavior as a firmware defect.
 Cooja-NG's existing fail-loud contract (no criteria, script without verdict, unknown medium)

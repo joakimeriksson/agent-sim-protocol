@@ -1,0 +1,4 @@
+{ "protocol": "agent-sim/0.3", "simulator": "x", "version": "1", "targets": ["t"], "operations": ["describe"],
+  "actions": { "gpio.set": { "schema": { "type": "not-a-type" } } },
+  "observations": ["log"], "conditions": ["log_contains"],
+  "determinism": { "deterministic": true, "seedable": false }, "limitations": { "stubs": [], "unmodelled": [] } }

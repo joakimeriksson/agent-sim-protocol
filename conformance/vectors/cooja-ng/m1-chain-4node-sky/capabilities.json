@@ -1,0 +1,28 @@
+{
+  "protocol": "agent-sim/0.3",
+  "simulator": "cooja-ng",
+  "version": "0.1.1",
+  "commit": "a09e798",
+  "targets": ["sky", "z1", "esb", "wismote", "cc2538dk", "zoul-firefly", "nrf52840-dk", "nrf52840-dongle", "nrf54l15-dk", "cooja", "external"],
+  "operations": ["describe", "configure", "reset", "run_until", "action", "observe", "diagnose"],
+  "actions": {
+    "move":     { "description": "set a node's position (metres)", "schema": { "type": "object", "required": ["node", "x", "y"], "properties": { "node": { "type": "integer", "minimum": 1 }, "x": { "type": "number" }, "y": { "type": "number" } } } },
+    "send":     { "description": "bytes into a node's UART RX", "schema": { "type": "object", "required": ["node", "data"], "properties": { "node": { "type": "integer", "minimum": 1 }, "data": { "type": "string" } } } },
+    "send_all": { "description": "bytes into every node's UART RX", "schema": { "type": "object", "required": ["data"], "properties": { "data": { "type": "string" } } } },
+    "remove":   { "description": "stop stepping a node", "schema": { "type": "object", "required": ["node"], "properties": { "node": { "type": "integer", "minimum": 1 } } } },
+    "add":      { "description": "re-add a removed node by rebooting it at the current time", "schema": { "type": "object", "required": ["node"], "properties": { "node": { "type": "integer", "minimum": 1 } } } }
+  },
+  "observations": ["log", "serial", "tx", "rx", "radio", "led", "interference", "mote_added", "mote_removed", "action"],
+  "observables": ["node.position", "node.radio", "medium.links"],
+  "conditions": ["log_contains", "log_matches", "event_count", "no_event", "time"],
+  "metrics": {},
+  "scenario_schema": "docs/test-format.schema.json",
+  "determinism": { "deterministic": true, "seedable": true, "breaks_with": ["--with-tun"],
+                   "derivation": "one seeded stream; startup delays and medium success draws are taken from it in node order" },
+  "nestable": true,
+  "limitations": {
+    "stubs": [],
+    "unmodelled": ["udgm: no capture effect, no path loss inside tx_range", "sky: no external flash wear, no ADC", "nrf54l15: enhanced ACKs, security"],
+    "notes": ["JS scripts remain the escape hatch for conditions outside the closed set"]
+  }
+}

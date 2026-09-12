@@ -1,0 +1,4 @@
+{ "protocol": "agent-sim/0.3", "simulator": "x", "version": "1", "verdict": "pass", "termination_reason": "completed",
+  "exit_code": 0, "seed": 1, "deterministic": true, "simulation_time_ns": 10,
+  "metrics": { "pdr": { "value": null, "definition": "unavailable" } },
+  "artifacts": { "events": "events.ndjson", "replay": "scenario.replay.yaml" } }

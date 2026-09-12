@@ -1,0 +1,31 @@
+{
+  "protocol": "agent-sim/0.3",
+  "simulator": "esp32sim",
+  "version": "0.4.1",
+  "commit": "2873374",
+  "run_dir": "out/hello-s3",
+  "verdict": "pass",
+  "termination_reason": "completed",
+  "exit_code": 0,
+  "seed": null,
+  "deterministic": true,
+  "simulation_time_ns": 3000000000,
+  "wall_ms": 188.0,
+  "nodes": 1,
+  "firmware": [
+    { "path": "tests/golden/hello-s3/bootloader.bin", "sha256": "0000000000000000000000000000000000000000000000000000000000000001", "type": "bootloader" },
+    { "path": "tests/golden/hello-s3/hello_world.bin", "sha256": "0000000000000000000000000000000000000000000000000000000000000002", "type": "app" }
+  ],
+  "conditions": [
+    { "kind": "expect", "condition": { "log_contains": { "text": "Hello world!" } }, "ok": true, "t": 412300000 },
+    { "kind": "invariant", "condition": { "no_event": { "type": "exception" } }, "ok": true, "t": null },
+    { "kind": "invariant", "condition": { "no_event": { "type": "unimplemented_access" } }, "ok": true, "t": null }
+  ],
+  "metrics": {},
+  "limitations_active": { "stubs": [], "unimplemented_accesses": [] },
+  "artifacts": {
+    "events": "events.ndjson",
+    "replay": "scenario.replay.yaml",
+    "console": "console.log"
+  }
+}

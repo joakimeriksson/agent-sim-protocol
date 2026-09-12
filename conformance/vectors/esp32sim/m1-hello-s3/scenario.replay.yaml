@@ -1,0 +1,23 @@
+# written by esp32sim 0.4.1 (2873374) at the end of the run; a valid scenario for `esp32sim run`
+protocol: agent-sim/0.3
+simulator: esp32sim
+version: 0.4.1
+commit: "2873374"
+seed: null
+firmware:
+  - { path: tests/golden/hello-s3/bootloader.bin, sha256: "0000000000000000000000000000000000000000000000000000000000000001" }
+  - { path: tests/golden/hello-s3/hello_world.bin, sha256: "0000000000000000000000000000000000000000000000000000000000000002" }
+config:
+  chip: esp32s3
+  board: none
+  boot: rom
+  bootloader: tests/golden/hello-s3/bootloader.bin
+  ptable: tests/golden/hello-s3/partition-table.bin
+  firmware: tests/golden/hello-s3/hello_world.bin
+  max_seconds: 3
+  expect:
+    - log_contains: { text: "Hello world!" }
+  invariants:
+    - no_event: { type: exception }
+    - no_event: { type: unimplemented_access }
+actions: []

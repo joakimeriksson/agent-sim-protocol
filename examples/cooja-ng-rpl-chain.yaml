@@ -1,0 +1,36 @@
+# Agent Simulation Protocol example for Cooja-NG (agent-sim/0.3, provisional).
+# A csim v2 config (docs/test-format.md) with the shared `expect` / `invariants` spelling next
+# to the existing keys. Run: cooja-ng run examples/cooja-ng-rpl-chain.yaml --run-dir out/chain
+version: 2
+title: "4-node chain RPL-UDP on Tmote Sky"
+timeout_ms: 180000
+seed: 42
+startup_delay_ms: 1000
+
+medium:
+  type: udgm
+  tx_range: 55.0
+  interference_range: 110.0
+  success_ratio_tx: 1.0
+  success_ratio_rx: 1.0
+
+mote_types:
+  - { name: sky-server, firmware: firmware/sky/udp-server.sky }
+  - { name: sky-client, firmware: firmware/sky/udp-client.sky }
+
+nodes:
+  - { type: sky-server, id: 1, x: 0.0,   y: 0.0 }
+  - { type: sky-client, id: 2, x: 50.0,  y: 0.0 }
+  - { type: sky-client, id: 3, x: 100.0, y: 0.0 }
+  - { type: sky-client, id: 4, x: 150.0, y: 0.0 }
+
+test:
+  actions:
+    - { at_ms: 120000, type: move, node: 4, x: 400.0, y: 0.0 }   # break the chain
+    - { at_ms: 150000, type: move, node: 4, x: 150.0, y: 0.0 }   # and mend it
+  expect:                       # sequential; each window starts where the previous was reached
+    - log_contains: { node: 1, text: "Received request", count: 1 }
+    - log_contains: { node: 4, text: "Received response", count: 1 }
+    - log_contains: { node: 4, text: "Received response", count: 3, since: previous }
+  invariants:                   # run-wide; a hit ends the run (maps onto fail_on)
+    - no_event: { type: log_matches, regex: "parent switch: -> \\(NULL" }

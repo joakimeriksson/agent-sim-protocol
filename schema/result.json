@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://joakimeriksson.github.io/agent-sim-protocol/schema/result.json",
+  "title": "result.json",
+  "description": "agent-sim/0.3, provisional. Written into run_dir at the end of every run. wall_ms, commit and run_dir vary between identical runs and are the fields a golden strips.",
+  "type": "object",
+  "required": ["protocol", "simulator", "version", "verdict", "termination_reason", "exit_code", "seed", "deterministic", "simulation_time_ns", "artifacts"],
+  "properties": {
+    "protocol": { "$ref": "envelope.json#/$defs/protocol" },
+    "simulator": { "type": "string", "minLength": 1 },
+    "version": { "type": "string", "minLength": 1 },
+    "commit": { "type": "string" },
+    "run_dir": { "type": "string" },
+    "verdict": { "enum": ["pass", "fail", "inconclusive"] },
+    "termination_reason": {
+      "enum": ["completed", "assertion_failed", "timeout_simulation", "timeout_wall", "cancelled", "guest_failure", "peer_disconnect", "simulator_error"]
+    },
+    "exit_code": { "$ref": "envelope.json#/$defs/exit_code" },
+    "error": { "$ref": "envelope.json#/$defs/error" },
+    "seed": { "type": ["integer", "null"] },
+    "deterministic": { "type": "boolean" },
+    "simulation_time_ns": { "type": "integer", "minimum": 0 },
+    "wall_ms": { "type": "number", "minimum": 0 },
+    "nodes": { "type": "integer", "minimum": 1 },
+    "firmware": {
+      "type": "array",
+      "items": {
+        "type": "object", "required": ["path", "sha256"],
+        "properties": { "path": { "type": "string" }, "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }, "node": { "type": "integer" }, "type": { "type": "string" } }
+      }
+    },
+    "conditions": {
+      "type": "array",
+      "description": "one entry per expect entry and per invariant, in order",
+      "items": {
+        "type": "object", "required": ["kind", "condition", "ok"],
+        "properties": {
+          "kind": { "enum": ["expect", "invariant"] },
+          "condition": { "$ref": "conditions.json" },
+          "ok": { "type": "boolean", "description": "expect: reached within its window; invariant: never hit" },
+          "t": { "type": ["integer", "null"], "description": "when it was reached (expect) or hit (invariant)" },
+          "expected": {}, "observed": {}
+        }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object", "required": ["value", "definition"],
+        "properties": { "value": { "type": ["number", "null"] }, "definition": { "type": "string" }, "unit": { "type": "string" }, "inputs": {} }
+      }
+    },
+    "limitations_active": {
+      "type": "object",
+      "properties": {
+        "stubs": { "type": "array", "items": { "type": "string" } },
+        "unimplemented_accesses": { "type": "array", "items": { "type": "object" } }
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "description": "name -> path relative to run_dir; events, replay and config are always present",
+      "required": ["events", "replay"],
+      "additionalProperties": { "$ref": "envelope.json#/$defs/relative_path" }
+    }
+  }
+}

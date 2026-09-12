@@ -1,0 +1,2 @@
+{ "source": "hand-written", "spec": "agent-sim/0.3", "simulator": "cooja-ng",
+  "note": "intended M1 output of `cooja-ng run configs/chain-4node-sky.yaml` (csim); replace with a recorded run" }

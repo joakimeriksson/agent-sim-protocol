@@ -1,0 +1,3 @@
+{ "protocol": "agent-sim/0.3", "simulator": "x", "version": "1", "targets": ["t"], "operations": [],
+  "actions": {}, "observations": ["log"], "conditions": ["log_contains"],
+  "determinism": { "deterministic": true, "seedable": false } }

@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://joakimeriksson.github.io/agent-sim-protocol/schema/capabilities.json",
+  "title": "capabilities reply",
+  "description": "agent-sim/0.3, provisional. The body of the capabilities response and of `<sim> capabilities --json`. Argument schemas are JSON Schema; they generate MCP tools.",
+  "type": "object",
+  "required": ["protocol", "simulator", "version", "targets", "operations", "actions", "observations", "conditions", "determinism", "limitations"],
+  "properties": {
+    "protocol": { "$ref": "envelope.json#/$defs/protocol" },
+    "simulator": { "type": "string", "minLength": 1 },
+    "version": { "type": "string", "minLength": 1 },
+    "commit": { "type": "string" },
+    "targets": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "chips, boards or platforms the simulator can run" },
+    "operations": { "type": "array", "items": { "$ref": "envelope.json#/$defs/operation" }, "uniqueItems": true },
+    "actions": {
+      "type": "object",
+      "description": "action name -> schema of its args, plus documentation",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["schema"],
+        "properties": {
+          "schema": { "type": "object", "description": "a JSON Schema for the action's args" },
+          "description": { "type": "string" }
+        }
+      }
+    },
+    "observations": { "type": "array", "items": { "type": "string" }, "description": "event types that can appear in events.ndjson" },
+    "observables": { "type": "array", "items": { "type": "string" }, "description": "names the observe operation accepts" },
+    "conditions": { "type": "array", "items": { "type": "string" }, "description": "condition names run_until, expect and invariants accept" },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["definition"],
+        "properties": { "definition": { "type": "string" }, "unit": { "type": "string" } }
+      }
+    },
+    "scenario_schema": {
+      "description": "the JSON Schema of the scenario file `run` accepts, inline or a path under the install",
+      "oneOf": [ { "type": "string" }, { "type": "object" } ]
+    },
+    "determinism": {
+      "type": "object",
+      "required": ["deterministic", "seedable"],
+      "properties": {
+        "deterministic": { "type": "boolean" },
+        "seedable": { "type": "boolean" },
+        "breaks_with": { "type": "array", "items": { "type": "string" } },
+        "derivation": { "type": "string", "description": "how per-component randomness derives from the experiment seed" }
+      }
+    },
+    "nestable": { "type": "boolean" },
+    "limitations": {
+      "type": "object",
+      "required": ["stubs", "unmodelled"],
+      "properties": {
+        "stubs": { "type": "array", "items": { "type": "string" }, "description": "stubs active in this invocation" },
+        "unmodelled": { "type": "array", "items": { "type": "string" } },
+        "notes": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}

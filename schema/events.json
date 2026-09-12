@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://joakimeriksson.github.io/agent-sim-protocol/schema/events.json",
+  "title": "one line of events.ndjson",
+  "description": "agent-sim/0.3, provisional. Event names are shared with the Cooja-NG lock-step protocol where the concept is the same (log, serial, tx, rx, radio, led). Every event carries t (ns) and node. Simulator-specific event types are allowed and must be advertised in capabilities.observations.",
+  "$ref": "envelope.json#/$defs/event",
+  "allOf": [
+    { "if": { "properties": { "type": { "const": "log" } } },
+      "then": { "required": ["line"], "properties": { "line": { "type": "string" } } } },
+    { "if": { "properties": { "type": { "const": "serial" } } },
+      "then": { "required": ["data"], "properties": { "data": { "type": "string", "description": "hex" } } } },
+    { "if": { "properties": { "type": { "const": "gpio" } } },
+      "then": { "required": ["pin", "value"], "properties": { "pin": { "type": "integer", "minimum": 0 }, "value": { "enum": [0, 1] } } } },
+    { "if": { "properties": { "type": { "const": "tx" } } },
+      "then": { "required": ["ch", "len"], "properties": { "ch": { "type": "integer" }, "len": { "type": "integer", "minimum": 0 }, "frame": { "type": "string" } } } },
+    { "if": { "properties": { "type": { "const": "rx" } } },
+      "then": { "required": ["ch", "len"], "properties": { "from": { "type": "integer", "minimum": 1 }, "ch": { "type": "integer" }, "len": { "type": "integer", "minimum": 0 }, "rssi": { "type": "number" }, "frame": { "type": "string" } } } },
+    { "if": { "properties": { "type": { "const": "radio" } } },
+      "then": { "required": ["state"], "properties": { "state": { "enum": ["off", "on", "rx", "tx"] }, "ch": { "type": "integer" } } } },
+    { "if": { "properties": { "type": { "const": "led" } } },
+      "then": { "required": ["leds"], "properties": { "leds": { "type": "array", "items": { "enum": [0, 1] } } } } },
+    { "if": { "properties": { "type": { "const": "exception" } } },
+      "then": { "required": ["cause"], "properties": { "cause": { "type": "string" }, "pc": { "type": "integer" }, "core": { "type": "integer" } } } },
+    { "if": { "properties": { "type": { "const": "unimplemented_access" } } },
+      "then": { "required": ["addr", "pc", "rw"], "properties": { "addr": { "type": "integer" }, "pc": { "type": "integer" }, "rw": { "enum": ["r", "w"] }, "symbol": { "type": "string" } } } },
+    { "if": { "properties": { "type": { "const": "stub" } } },
+      "then": { "required": ["symbol"], "properties": { "symbol": { "type": "string" }, "pc": { "type": "integer" } } } },
+    { "if": { "properties": { "type": { "const": "action" } } },
+      "then": { "required": ["name", "seq"], "properties": { "name": { "type": "string" }, "seq": { "type": "integer", "minimum": 0 }, "args": { "type": "object" } } } },
+    { "if": { "properties": { "type": { "const": "mote_added" } } }, "then": {} },
+    { "if": { "properties": { "type": { "const": "mote_removed" } } }, "then": {} },
+    { "if": { "properties": { "type": { "const": "interference" } } },
+      "then": { "properties": { "from": { "type": "integer" }, "ch": { "type": "integer" } } } }
+  ],
+  "$defs": {
+    "known_types": {
+      "enum": ["log", "serial", "gpio", "tx", "rx", "radio", "led", "exception", "unimplemented_access", "stub", "action", "mote_added", "mote_removed", "interference"]
+    }
+  }
+}

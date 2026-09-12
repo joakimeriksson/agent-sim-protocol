@@ -1,0 +1,4 @@
+# effective configuration (the --save-config output); placeholder in a hand-written vector
+version: 2
+seed: 42
+timeout_ms: 180000

@@ -121,7 +121,8 @@ Goal: both simulators produce `capabilities --json`, a run directory with `resul
 shared table, for one existing scenario each. The conformance checker and Python client exist
 and pass.
 
-Spec repo (S), built first and marked provisional: `schema/envelope.json`,
+Spec repo (S), built first and marked provisional (done 2026-09-12, commit below; all vectors
+hand-written until Cooja-NG produces output): `schema/envelope.json`,
 `capabilities.json` (real JSON Schema for action arguments, `observables`, `scenario_schema`,
 `limitations`), `result.json` (`verdict`, `termination_reason`), `events.json` for `log`,
 `gpio`, `tx`, `rx`, `radio`, `exception`, `unimplemented_access`, `stub`, all with `node`;

@@ -185,7 +185,7 @@ A small deliberately broken ESP-IDF project under `examples/` demonstrating auto
 ```text
 agent receives broken firmware
 → builds it
-→ esp32sim test fails (exit 1, result.json, events.ndjson)
+→ esp32sim run fails (exit 1, result.json, events.ndjson)
 → agent reads the evidence
 → agent edits firmware
 → rebuilds

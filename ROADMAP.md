@@ -1,6 +1,6 @@
 # Roadmap — from strawman to two conforming simulators
 
-Companion to `AGENT_SIM_PROTOCOL.md`, `COOJA_NG_AGENT_PLAN.md` and `ESP32SIM_AGENT_PLAN.md`.
+Companion to `SPEC.md`, `COOJA_NG_AGENT_PLAN.md` and `ESP32SIM_AGENT_PLAN.md`.
 This document answers two questions: where the protocol lives, and in what order the two
 simulators implement it.
 
@@ -28,6 +28,9 @@ whether it makes agents faster and not only compliant:
 - wall time per iteration on the demo, split into build, run and agent thinking;
 - iterations to a passing test, per agent model, on the demo fixtures.
 
+The agent harness and model used for the acceptance run are pinned and named in the demo, so
+the numbers are comparable across protocol changes and not across model updates.
+
 Build is outside the protocol on purpose, but inside the demo: `idf.py build` and Contiki `make`
 are part of the measured cycle, since a slow or flaky build breaks the loop more often than the
 simulator does.
@@ -42,15 +45,17 @@ vectors, and one client.
 
 ```text
 agent-sim-protocol/
-  SPEC.md                      the protocol (today's AGENT_SIM_PROTOCOL.md)
+  SPEC.md                      the protocol
+  AGENTS.md                    the rules below, for coding agents working on this repo
   ROADMAP.md                   this file
   schema/
     envelope.json              request/response/event envelope: id, type, t, ok, error
     capabilities.json
     result.json
-    events.json                one schema per event type, shared lock-step names
-    conditions.json            the closed condition set
-    scenario-common.json       the fields both scenario formats share (expect, actions[].at)
+    events.json                one schema per event type, shared lock-step names, node on every event
+    conditions.json            the closed condition set and its evaluation windows
+    scenario-common.json       the fields both scenario formats share (expect, invariants, actions[].at)
+    replay.json                scenario.replay.yaml: initial config, seed, hashes, action history
   conformance/
     check.py                   validates capabilities / result.json / events.ndjson against schema/
     vectors/                   recorded sessions and results from both simulators, per spec version
@@ -102,12 +107,16 @@ Sizes are relative: S is a day or two, M a week, L more, with a coding agent doi
 ### M1 — Vertical slice: every run leaves evidence (S+M)
 
 Goal: both simulators produce `capabilities --json`, a run directory with `result.json`,
-`events.ndjson` and `config.effective.yaml`, and exit codes from the shared table, for one
-existing scenario each. The conformance checker and Python client exist and pass.
+`events.ndjson`, `scenario.replay.yaml` and `config.effective.yaml`, and exit codes from the
+shared table, for one existing scenario each. The conformance checker and Python client exist
+and pass.
 
-Spec repo (S): `schema/envelope.json`, `capabilities.json`, `result.json`, `events.json` for
-`log`, `gpio`, `tx`, `rx`, `radio`, `exception`, `unimplemented_access`, `stub`; `check.py`;
-the client's spawn, hello, capabilities and run-directory reading.
+Spec repo (S): `schema/envelope.json`, `capabilities.json` (real JSON Schema for action
+arguments, `observables`, `scenario_schema`, `limitations`), `result.json` (`verdict`,
+`termination_reason`), `events.json` for `log`, `gpio`, `tx`, `rx`, `radio`, `exception`,
+`unimplemented_access`, `stub`, all with `node`; `replay.json`; `check.py`; one recorded vector
+per simulator as soon as it produces output, plus one hand-written negative vector; the client's
+spawn, hello, capabilities and run-directory reading; `AGENTS.md`.
 
 csim (M):
 - a `json_export` service (`src/services/`, implementing `sim_service_ops_t` like
@@ -116,29 +125,34 @@ csim (M):
   service from `external-nodes-plan.md` §5.3 is not built yet; when it is, it should share this
   writer.
 - `--run-dir DIR` on `test_runner test`; `--save-config` output always written there as
-  `config.effective.yaml`.
+  `config.effective.yaml`; `scenario.replay.yaml` written from the initial config plus the
+  actions that fired.
 - `result.json` written at `SIM_OBS_SIM_STOP` by the JSON test engine (`json_test_service.c`):
-  verdict, seed, version and commit, firmware hashes, simulation and wall time, per-step
-  outcome, artifact paths.
+  `verdict`, `termination_reason`, seed, version and commit, firmware hashes, simulation and
+  wall time, per-step outcome, artifact paths relative to the run directory.
+- an unknown medium, plugin or required service is `configuration_error` before the run, not a
+  warning and a fallback.
 - `test_runner capabilities --json` from the board registry, medium registry and plugin
   registry, plus static lists of actions, conditions and services.
 - exit codes mapped in `test_runner` main.
 - a CI step running `check.py` on `configs/chain-4node-sky.yaml`'s output.
 
 esp32sim (M):
-- subcommands in `cli/src/lib.rs`: `capabilities`, `run`, `test`; the existing flag-style
-  invocation stays as-is.
+- subcommands in `cli/src/lib.rs`: `capabilities`, `describe`, `run`; the existing flag-style
+  invocation stays as-is for bare firmware runs.
 - a `json` observer in `esp-soc/src/observers/` next to `vcd.rs` and `trace.rs`: console lines
   as `log`, GPIO edges as `gpio` (the VCD observer already sees them), exceptions, unknown
   register accesses (the `--log-periph` path) as `unimplemented_access`, stub hits as `stub`,
-  script actions as they fire. Written to `events.ndjson` in `--run-dir`, never interleaved
-  with the console on stdout.
+  script actions as they fire, `node: 1` on each. Written to `events.ndjson` in `--run-dir`,
+  never interleaved with the console on stdout.
 - `result.json` at exit from the end-of-run figures plus chip, board, image hashes, version and
-  commit, active stubs, unimplemented accesses seen, last PC and cause on a guest failure.
+  commit, active stubs, unimplemented accesses seen, last PC and cause on a guest failure;
+  `scenario.replay.yaml` from the invocation plus the script events that fired.
 - `capabilities --json` from the chip and board tables plus static action, condition and
   limitation lists; must work with no ROM and no firmware.
 - the missing-ROM error as `configuration_error`, exit 2, naming the path looked for.
-- a golden for `esp32sim test --json` on `hello-s3`, byte-identical like the others.
+- a golden for `esp32sim run` on `hello-s3` with a fixed `--run-dir`: `events.ndjson` byte for
+  byte, `result.json` with wall time, commit and run directory stripped.
 - a CI step running `check.py`.
 
 Exit criterion: `agentsim run esp32sim examples/esp32sim-button.yaml` and
@@ -146,32 +160,38 @@ Exit criterion: `agentsim run esp32sim examples/esp32sim-button.yaml` and
 
 ### M2 — Conditions and scenarios (M+M)
 
-Goal: the shared closed condition set works in both, `expect` fails with expected, observed and
-artifacts, and exit codes distinguish assertion, guest failure and timeout.
+Goal: the shared closed condition set works in both with the evaluation windows in `SPEC.md`,
+`expect` is sequential and `invariants` are run-wide, a failed `expect` returns expected,
+observed and artifacts, exit codes distinguish assertion (1), guest failure (5) and timeout (6),
+and `scenario.replay.yaml` runs back through `run`.
 
-Spec repo (S): `schema/conditions.json`, `scenario-common.json`; `run_until` semantics written
-down from what the implementations did; vectors for a failing assertion from each simulator.
+Spec repo (S): `schema/conditions.json` with the window rules, `scenario-common.json` with
+`expect` and `invariants`; `run_until` and `wall_ms` semantics written down from what the
+implementations did; vectors for a failing `expect` and a hit invariant from each simulator.
 
 csim (S to M):
-- map the existing `wait` + `count`, validators and `fail_on` onto `log_contains`, `log_matches`,
-  `no_event`, `event_count` in `result.json` so the report speaks the shared vocabulary. No
-  change to the config format yet.
-- accept the shared names as an alternative spelling in `test.expect`, alongside the existing
-  `steps` and `validators`.
+- map the existing `wait` + `count` steps onto `expect` and `fail_on` onto `invariants` in
+  `result.json`, so the report speaks the shared vocabulary. The steps are already sequential
+  with the right windows. No change to the config format yet.
+- accept the shared names as an alternative spelling in `test.expect` and `test.invariants`,
+  alongside the existing `steps`, `validators` and `fail_on`.
+- `--wall-timeout`.
 - `metric` conditions wait for M4.
 
 esp32sim (M):
-- a YAML scenario loader that produces the existing `Script` events plus an `expect` list; keep
-  the `--script` verbs as the action names.
-- a condition observer evaluating `log_contains`, `log_matches`, `gpio_level`, `time`,
-  `event_count`, `no_event`, plus `probe_reached` on the `--trace-fn`/`--stub` entry mechanism
-  and `memory_value` on the `--watch` mechanism.
-- `expect` entries run in order as `run_until` over `Machine::run_until_cycle`; `within_ms`
-  becomes the timeout.
+- a YAML scenario loader that produces the existing `Script` events plus `expect` and
+  `invariants`; keep the `--script` verbs as the action names.
+- a condition observer in the scheduled run loop, next to where script events already stop the
+  run at their times, so both S3 cores run (`run_until_cycle` is single-core and stays the
+  lock-step path): `log_contains`, `log_matches`, `gpio_level`, `time`, `event_count`,
+  `no_event`, plus `probe_reached` on the `--trace-fn`/`--stub` entry mechanism and
+  `memory_value` on the `--watch` mechanism.
+- `expect` entries run in order; `within_ms` becomes the simulation timeout; `--wall-timeout`.
 - `deterministic: false` in `result.json` when `--net nat` or `--realtime` is active.
 
 Exit criterion: the broken-firmware demo fixture fails with exit 1 and a `result.json` that
-names the failed `expect`, on both a fresh build and in the golden suite.
+names the failed `expect`, on both a fresh build and in the golden suite; a fixture that panics
+exits 5; `esp32sim run out/scenario.replay.yaml` reproduces a run byte for byte.
 
 ### M3 — Limitations, diagnose, bundle, escalation (S+S+S)
 
@@ -183,9 +203,11 @@ csim (S): `limitations` per platform from a static table (unmodelled peripherals
 simplifications); `test_runner bundle <run_dir>`; the escalation section in `AGENTS.md`.
 
 esp32sim (S): the "Not there yet" lists of `docs/esp32c3.md` and `docs/esp32c6.md` as a static
-table surfaced in `capabilities.limitations`, with active stubs; `esp32sim diagnose <run_dir>`
-reading `result.json` and the traces; `esp32sim bundle <run_dir>`; the escalation section in
-`AGENTS.md`, which today only covers PR stacks.
+table surfaced in `capabilities.limitations`, with active stubs and the single-core note;
+`esp32sim diagnose <run_dir>` reading `result.json` and the traces; `esp32sim bundle <run_dir>`;
+the escalation section in `AGENTS.md`, which today only covers PR stacks; the lock-step `hello`
+seed honoured by the model's xorshift, with the `cooja-*.ndjson` goldens updated, so a nested
+run reports the experiment seed.
 
 ### M4 — Metrics and multi-seed in Cooja-NG (M)
 
@@ -197,8 +219,9 @@ at all (instruction count and simulation time qualify).
 
 ### M5 — MCP adapter and the agent demo (S+M)
 
-Spec repo (S): `mcp_adapter.py` generates one tool per operation and one per advertised action
-from `capabilities`, for either simulator, and is checked against both.
+Spec repo (S): `mcp_adapter.py`, batch-shaped: `capabilities`, `describe`, `run` (a scenario
+file), `read_result` and `diagnose`, generated from `capabilities` for either simulator and
+checked against both. It needs no session. Per-action and `run_until` tools arrive with M6.
 
 esp32sim (M): the deliberately broken ESP-IDF project under `examples/`, the acceptance run
 with a fresh agent given only `capabilities --json`, and the second demo that exposes a known
@@ -211,9 +234,10 @@ PDR requirement over five seeds.
 
 ### M6 — Streaming session and nested diagnostics (M+M)
 
-esp32sim (M): the control-plane session on stdin/stdout: `hello`, `capabilities`, `configure`,
-`reset`, `action`, `run_until`, `observe`, `terminate`. The loop shape is the `--cooja` loop
-with the roles reversed: read a request, `run_until_cycle` or until a condition, reply. Refused
+esp32sim (M): the control-plane session on stdin/stdout: `hello`, `capabilities`, `describe`,
+`configure`, `reset`, `action`, `run_until`, `observe`, `cancel`, `terminate`. The request/reply
+shape is the `--cooja` loop with the roles reversed, but it drives the scheduled run loop (both
+cores), not `run_until_cycle`. Every accepted action goes into `scenario.replay.yaml`. Refused
 when `--cooja` is active.
 
 csim (M): the same session on `test_runner`, smaller in scope since most agents will use the
@@ -222,7 +246,8 @@ reply so esp32sim's unimplemented accesses and stub hits reach `events.ndjson` a
 `result.json` as node-scoped entries. This is a lock-step protocol change and is documented in
 `external-nodes-plan.md`, not in this spec.
 
-Spec repo (S): session semantics written from the implementation; vectors recorded from both.
+Spec repo (S): session and `cancel` semantics written from the implementation; the per-action
+and `run_until` MCP tools added to the adapter; vectors recorded from both.
 
 ## 3. Sequencing across the two repos
 
@@ -250,3 +275,7 @@ config in csim before it is called done.
   protocol-agnostic option.
 - **Nested diagnostics** touch the lock-step protocol, which has its own tests in both repos
   and a byte-identical bar. Version it (`proto: 2`) rather than extending `proto: 1` silently.
+- **Single-core cycle path in esp32sim.** `run_until_cycle` does not schedule the S3's second
+  core. Conditions and the session must live in the scheduled run loop; if that loop cannot
+  stop precisely enough at a condition, M2's esp32sim estimate grows, and the S3 demo is the
+  one that would notice.

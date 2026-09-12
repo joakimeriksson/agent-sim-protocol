@@ -1,4 +1,4 @@
-# esp32sim — Agent-Native Development Plan (v0.2)
+# esp32sim — Agent-Native Development Plan (v0.3)
 
 ## Goal
 
@@ -32,8 +32,11 @@ finds the mask ROM for a fresh agent, and an escalation workflow in `AGENTS.md`.
 The existing `--cooja` mode is a data-plane lock-step peer, not the agent control plane. Its
 handshake currently accepts a seed for the session while the modeled RNG starts from a fixed
 default. Until seed injection is implemented, report `seed: null` and document the fixed RNG
-behavior; do not imply that the Cooja seed controls ESP32 randomness. `run_until_cycle` also has
-explicit single-core semantics, so capabilities must state that limitation for S3 workloads.
+behavior; do not imply that the Cooja seed controls ESP32 randomness. `run_until_cycle` is
+documented as single-core only (the S3's second core is not scheduled there), so conditions and
+the session must hook into the normal scheduled run loop, which runs both cores and already
+stops at script-event times; the cycle-exact path is for the lock-step peer. Capabilities state
+this under `limitations.notes`.
 
 ## Design principles
 
@@ -59,22 +62,28 @@ priority 5:
 
 ## Phase 1 — Structured output on the existing CLI
 
-- `--json`: the console, GPIO edges, exceptions, unimplemented register accesses, stub hits,
-  script actions and the end-of-run figures as NDJSON on stdout, `t` in ns (the bus cycle
-  counter, as `--cooja` already stamps). Event names shared with the lock-step protocol
-  (`log`, `serial`, `radio`, `led`) plus `gpio`, `exception`, `unimplemented_access`, `stub`.
-- A run directory holding `events.ndjson`, `result.json`, `console.log` and whichever of VCD,
-  trace, coverage, regstat were requested.
-- Exit codes from the shared table in `AGENT_SIM_PROTOCOL.md`: 0 pass, 1 guest failure or
-  assertion or timeout, 2 configuration, 3 unsupported, 4 simulator error.
+- `--run-dir DIR`: a run directory holding `events.ndjson`, `result.json`,
+  `scenario.replay.yaml`, `console.log` and whichever of VCD, trace, coverage, regstat were
+  requested. Events are never interleaved with the console on stdout; stdout stays the console.
+- `events.ndjson`: console lines, GPIO edges, exceptions, unimplemented register accesses, stub
+  hits, script actions and the end-of-run figures, `t` in ns (the bus cycle counter, as
+  `--cooja` already stamps), `node: 1` on every event. Event names shared with the lock-step
+  protocol (`log`, `serial`, `radio`, `led`) plus `gpio`, `exception`, `unimplemented_access`,
+  `stub`.
+- `result.json` with `termination_reason` and `verdict`; artifact paths relative to the run
+  directory. Wall time, commit and run directory are the fields a golden strips.
+- Exit codes from the shared table in `SPEC.md`: 0 pass, 1 assertion, 2 configuration,
+  3 unsupported, 4 simulator error, 5 guest failure, 6 timeout, 7 cancelled.
+- `--wall-timeout S` next to `--max-seconds`.
 
-In `--cooja` mode stdin and stdout belong to csim; `--json` is refused there and diagnostics go
-to the run directory or through the lock-step reply (Cooja-NG plan, Phase 10).
+In `--cooja` mode stdin and stdout belong to csim; the control plane is refused there and
+diagnostics go to the run directory or through the lock-step reply (Cooja-NG plan, Phase 10).
 
-## Phase 2 — Scenario file and assertions
+## Phase 2 — Scenario file, expect and invariants
 
-A YAML scenario wraps what the command line and `--script` already express and adds `expect`.
-The action lines keep their existing names; the file is converted to the same `Script` events.
+A YAML scenario wraps what the command line and `--script` already express and adds `expect`
+(sequential) and `invariants` (run-wide). The action lines keep their existing names; the file is
+converted to the same `Script` events.
 
 ```yaml
 chip: esp32s3
@@ -90,22 +99,27 @@ actions:
 expect:
   - log_contains: { text: "button pressed" }
   - gpio_level:   { pin: 5, value: 1, within_ms: 200 }
-  - no_event:     { type: exception }
-  - no_event:     { type: unimplemented_access }
+invariants:
+  - no_event: { type: exception }
+  - no_event: { type: unimplemented_access }
 ```
 
-Conditions are the shared closed set (`log_contains`, `log_matches`, `gpio_level`, `time`,
-`event_count`, `no_event`). Add `probe_reached` (function entry, via the `--trace-fn` /
-`--stub` mechanism) and `memory_value` as esp32sim-specific conditions. `expect` entries are
-`run_until` calls in order; a failed one is `assertion_failed` with expected, observed and the
-artifact paths.
+Conditions are the shared closed set with the evaluation windows in `SPEC.md`: each `expect`
+entry's window starts where the previous one was reached; `invariants` run from reset and a hit
+ends the run at once. Add `probe_reached` (function entry, via the `--trace-fn` / `--stub`
+mechanism) and `memory_value` (the `--watch` mechanism) as esp32sim-specific conditions.
+
+The condition observer lives in the scheduled run loop, next to where script events already
+stop the run at their times, so both S3 cores run. A failed `expect` is `assertion_failed` with
+expected, observed and the artifact paths. Every run also writes `scenario.replay.yaml`, which
+`run` accepts back.
 
 There is no `seed` field. esp32sim is deterministic and unseedable; the result reports
 `seed: null`, `deterministic: true`, and `deterministic: false` when `--net nat` or `--realtime`
 is in effect.
 
 ```text
-esp32sim test scenario.yaml --json
+esp32sim run scenario.yaml --run-dir out/
 ```
 
 ## Phase 3 — Capability discovery
@@ -115,11 +129,17 @@ esp32sim capabilities --json
 esp32sim describe gpio.set --json
 ```
 
-Report, with schemas: chips and boards, actions (the `--script` verbs plus `flash-at`, `stub`),
-observation types, conditions, output artifacts, `determinism`
-(`deterministic: true, seedable: false, breaks_with: [--net nat, --realtime]`),
-`nestable: true`, and `limitations` per chip: the "Not there yet" lists from `docs/esp32c3.md`
-and `docs/esp32c6.md` made machine-readable, plus the stubs the current invocation has active.
+Report, with JSON Schemas: chips and boards, actions (the `--script` verbs plus `flash-at`,
+`stub`), observation types, `observables` for `observe`, conditions, the scenario schema, output
+artifacts, `determinism` (`deterministic: true, seedable: false, breaks_with: [--net nat,
+--realtime]`), `nestable: true`, and `limitations` per chip: the "Not there yet" lists from
+`docs/esp32c3.md` and `docs/esp32c6.md` made machine-readable, the single-core note on the
+cycle-exact path, plus the stubs the current invocation has active. `describe <name>` returns
+one entry.
+
+Honour the seed csim sends in the lock-step `hello` for the model's xorshift (today it is
+parsed and logged only), so a nested run reports the experiment seed instead of `seed: null`.
+The `cooja-*.ndjson` goldens are updated with it.
 
 Limitations are what keep an agent from filing a firmware bug against a watchdog that never
 fires or a baseband calibration that is stubbed.
@@ -179,23 +199,27 @@ failure → limitations checked → minimal repro → regression → esp32sim fi
 ```
 
 Acceptance test for the whole plan: a fresh agent, given only `capabilities --json` and the
-broken project, completes the first demo with no simulator-specific prompt.
+broken project, completes the first demo with no simulator-specific prompt. The agent harness
+and model are pinned and named in the demo's README so the loop metrics are comparable across
+protocol changes.
 
 ## Phase 7 — Protocol adapters
 
 Once `test` and `--json` are stable:
 
 - the streaming session of the Agent Simulation Protocol (`hello`, `run_until`, `action`,
-  `observe`) on stdin/stdout, reusing the `--cooja` machinery for stepping to a cycle
-- an MCP adapter generated from `capabilities`
+  `observe`, `cancel`) on stdin/stdout, driving the scheduled run loop (both cores), with the
+  `--cooja` loop as the shape of the request/reply cycle
+- the per-action MCP tools generated from `capabilities` (the batch-shaped adapter needs no
+  session and comes earlier)
 - a small Python client
 - shell and CI usage stay fully supported without MCP
 
 ## Priorities
 
 1. ROM discovery and error, install path (Phase 0)
-2. `--json` events, run directory, exit codes (Phase 1)
-3. scenario file with `expect` (Phase 2)
+2. run directory, `events.ndjson`, `result.json`, exit codes (Phase 1)
+3. scenario file with `expect` and `invariants`, replay file (Phase 2)
 4. `result.json` with stubs and unimplemented accesses; `capabilities` with limitations (Phases 3, 4)
 5. `AGENTS.md` escalation workflow (Phase 5)
 6. broken-firmware demo and acceptance test (Phase 6)

@@ -1,4 +1,4 @@
-# Cooja-NG — Agent-Native Development Plan (v0.2)
+# Cooja-NG — Agent-Native Development Plan (v0.3)
 
 ## Goal
 
@@ -34,12 +34,14 @@ bundle, and an escalation workflow in `AGENTS.md`.
 Two existing behaviors must be hardened before exposing this as an agent/CI contract:
 
 - An unknown custom medium currently warns and falls back to the default medium. A requested
-  medium, plugin, or required service must instead make configuration fail before simulation;
-  fallback is allowed only when explicitly requested in the experiment.
+  medium, plugin, or required service must instead make configuration fail before simulation
+  (`configuration_error`, exit 2); fallback is allowed only when explicitly requested in the
+  experiment. This is a Phase 1 item.
 - `--save-config` exports the live final setup. It is useful for continuing a session, but it is
-  not a replay of a run that moved, removed, or re-added nodes. Preserve the initial setup and
-  record an ordered action history (effective simulation time, action, result) in a separate
-  replay artifact.
+  not a replay of a run that moved, removed, or re-added nodes. The replay artifact is
+  `scenario.replay.yaml` (`SPEC.md`, "Replay"): the initial setup, the effective seed, resolved
+  firmware and plugin hashes, and the ordered action history with effective simulation times.
+  It is itself a valid config for `run`.
 
 ## Design principles
 
@@ -57,19 +59,23 @@ Two existing behaviors must be hardened before exposing this as an agent/CI cont
 
 Delta, not a new runner:
 
-- `cooja-ng run experiment.yaml --json` as a thin alias of `test_runner test`, keeping every
-  existing flag.
+- `cooja-ng run experiment.yaml --run-dir DIR` as a thin alias of `test_runner test`, keeping
+  every existing flag; `--wall-timeout S` added.
 - A run directory per run (`run_dir`) holding `result.json`, `events.ndjson`,
-  `config.effective.yaml` (today's `--save-config` output, always written), the existing
-  `COOJA.testlog`, and pcap when enabled.
-- `result.json`: verdict, effective seed, Cooja-NG version and commit, firmware paths and
-  hashes, simulation time, wall time, per-condition outcome, metrics, artifact paths.
-- Exit codes from the shared table in `AGENT_SIM_PROTOCOL.md`; the current fail-loud cases map
-  to `configuration_error` (2).
+  `scenario.replay.yaml`, `config.effective.yaml` (today's `--save-config` output, always
+  written), the existing `COOJA.testlog`, and pcap when enabled. Artifact paths are relative to
+  the run directory.
+- `result.json`: `verdict` and `termination_reason`, effective seed, Cooja-NG version and
+  commit, firmware paths and hashes, simulation time, wall time, per-condition outcome, metrics,
+  artifact paths.
+- Exit codes from the shared table in `SPEC.md`: 0 pass, 1 assertion, 2 configuration,
+  3 unsupported, 4 simulator error, 5 guest failure, 6 timeout, 7 cancelled. The current
+  fail-loud cases (no criteria, no verdict, unknown medium) map to `configuration_error`.
 
 ```json
 {
-  "result":"pass",
+  "verdict":"pass",
+  "termination_reason":"completed",
   "seed":42,
   "deterministic":true,
   "version":"0.1.1+a09e798",
@@ -77,7 +83,7 @@ Delta, not a new runner:
   "nodes":50,
   "conditions":[{"log_contains":{"node":1,"text":"Data received from","count":3},"reached":true,"t":412300000000}],
   "metrics":{"radio_duty_cycle":{"value":0.021,"definition":"energest tx+rx+listen over sim time, all nodes"}},
-  "artifacts":{"events":"runs/.../events.ndjson","pcap":"runs/.../radio.pcap"}
+  "artifacts":{"events":"events.ndjson","replay":"scenario.replay.yaml","pcap":"radio.pcap"}
 }
 ```
 
@@ -127,16 +133,21 @@ Every metric in a result states its calculation semantics and inputs. Nothing is
 
 ## Phase 5 — Conditions and multi-seed evaluation
 
-Existing conditions map onto the shared closed set: `wait` is `log_contains` with `count`,
-`fail_on` is `no_event` on a log pattern, validators are `log_contains` with `count`. Add
-`metric` thresholds:
+Existing conditions map onto the shared closed set and its two lists: `test.steps` (`wait` +
+`count`) is `expect` with `log_contains`, sequential, each window starting where the previous
+step was reached, which is what the steps already do; `fail_on` is `invariants` with `no_event`
+on a log pattern; validators are `expect` entries with `count`. The shared names are accepted as
+an alternative spelling next to the existing keys; nothing is renamed. Add `metric` thresholds:
 
 ```yaml
-assert:
+expect:
   - metric: { name: pdr, op: ">=", value: 0.99 }
   - metric: { name: latency_p95_ms, op: "<", value: 200 }
   - metric: { name: radio_duty_cycle, op: "<", value: 0.03 }
 ```
+
+A `metric` in `expect` is evaluated at the end of the run; an unavailable metric makes the
+verdict `inconclusive`, not a pass.
 
 JS scripts remain the escape hatch and are advertised as such.
 
@@ -158,10 +169,13 @@ cooja-ng capabilities --json
 cooja-ng describe radio.inject --json
 ```
 
-Report, with schemas: platforms (from the board registry), media and medium plugins, actions,
-observation types, conditions, metrics with definitions, services, `determinism`
-(`seedable: true`), `nestable` (kernel side), and `limitations` (per-platform unmodelled
-peripherals, known model simplifications such as UDGM).
+Report, with JSON Schemas: platforms (from the board registry), media and medium plugins,
+actions, observation types, `observables`, conditions, the scenario schema (the existing
+`docs/test-format.md` schema, machine-readable), metrics with definitions, services,
+`determinism` (`seedable: true`, with the documented derivation of startup delay and medium
+randomness from the one seed), `nestable` (kernel side), and `limitations` (per-platform
+unmodelled peripherals, known model simplifications such as UDGM). `describe <name>` returns
+one entry.
 
 ## Phase 7 — Evidence bundle
 
@@ -174,10 +188,10 @@ Every failed run can produce a directory that another human or agent replays exa
 - metric inputs and definitions
 - simulator warnings and errors
 
-`cooja-ng bundle <run_dir>` is a tar of the run directory plus a `README` describing how to replay.
-The replay manifest must include the initial configuration, resolved firmware/plugin hashes,
-effective per-node seeds, and the ordered action history. Final positions alone are insufficient
-to reproduce a dynamic topology run.
+`cooja-ng bundle <run_dir>` is a tar of the run directory plus a `README` describing how to
+replay. `scenario.replay.yaml` inside it is the replay: initial configuration, resolved
+firmware and plugin hashes, the experiment seed and its documented derivation, and the ordered
+action history. Final positions alone are insufficient to reproduce a dynamic topology run.
 
 ## Phase 8 — Simulator/model bug escalation
 
@@ -192,7 +206,7 @@ Agent workflow for a suspected Cooja-NG bug:
 
 1. Check `capabilities.limitations` first.
 2. Minimize node count, topology, runtime, and firmware needed to reproduce.
-3. Pin the seed; keep `config.effective.yaml`.
+3. Pin the seed; keep `scenario.replay.yaml` and `config.effective.yaml`.
 4. Compare against specifications, other models, Java Cooja, traces, or physical experiments where feasible.
 5. Add a minimal regression config under `configs/` or `test/`.
 6. Fix Cooja-NG only when evidence supports the diagnosis.
@@ -236,7 +250,7 @@ node-scoped entries in `events.ndjson`, `result.json` and the bundle. This needs
 
 ## Priorities
 
-1. `result.json`, run directory, exit-code table (Phase 1)
+1. `result.json`, run directory, replay file, exit-code table, no silent medium fallback (Phase 1)
 2. `events.ndjson` export (Phase 2)
 3. energest metrics with definitions; decide the PDR/latency source (Phase 4)
 4. `metric` conditions and multi-seed aggregate (Phase 5)

@@ -35,7 +35,6 @@ SCHEMAS = ["envelope", "capabilities", "conditions", "result", "events", "replay
 EXIT_FOR_REASON = {
     "completed": None,
     "assertion_failed": 1,
-    "timeout_simulation": 6,
     "timeout_wall": 6,
     "cancelled": 7,
     "guest_failure": 5,
@@ -170,6 +169,7 @@ def check_result(doc: Any, rep: Report) -> None:
 def check_events(lines: Iterable[str], rep: Report) -> list:
     events = []
     last_t: dict = {}
+    last_seq = -1
     for n, line in enumerate(lines, 1):
         line = line.strip()
         if not line:
@@ -187,13 +187,17 @@ def check_events(lines: Iterable[str], rep: Report) -> list:
         if node in last_t and ev["t"] < last_t[node]:
             rep.error("E1", f"line {n}: t={ev['t']} goes backwards for node {node} (previous {last_t[node]})")
         last_t[node] = ev["t"]
+        # E2: seq strictly increasing across the whole stream
+        if ev["seq"] <= last_seq:
+            rep.error("E2", f"line {n}: seq={ev['seq']} not greater than previous {last_seq}")
+        last_seq = ev["seq"]
         # E3: unknown event type is allowed but noted
         if ev["type"] not in KNOWN_EVENT_TYPES:
             rep.warn("W-E3", f"line {n}: simulator-specific event type {ev['type']!r}")
-    # E4: action sequence numbers strictly increasing
-    seqs = [ev["seq"] for ev in events if ev.get("type") == "action"]
+    # E4: action_seq strictly increasing
+    seqs = [ev["action_seq"] for ev in events if ev.get("type") == "action"]
     if any(b <= a for a, b in zip(seqs, seqs[1:])):
-        rep.error("E4", f"action seq not strictly increasing: {seqs}")
+        rep.error("E4", f"action_seq not strictly increasing: {seqs}")
     return events
 
 
@@ -201,10 +205,10 @@ def check_replay(doc: Any, rep: Report) -> None:
     if not _schema_errors("replay", doc, rep, "S-RPL"):
         return
     acts = doc["actions"]
-    # P1: seq strictly increasing, t non-decreasing
-    seqs = [a["seq"] for a in acts]
+    # P1: action_seq strictly increasing, t non-decreasing
+    seqs = [a["action_seq"] for a in acts]
     if any(b <= a for a, b in zip(seqs, seqs[1:])):
-        rep.error("P1", f"actions.seq not strictly increasing: {seqs}")
+        rep.error("P1", f"actions.action_seq not strictly increasing: {seqs}")
     ts = [a["t"] for a in acts]
     if any(b < a for a, b in zip(ts, ts[1:])):
         rep.error("P1", f"actions.t goes backwards: {ts}")
@@ -267,12 +271,19 @@ def check_run_dir(run_dir: Path, rep: Report) -> None:
         if result["simulation_time_ns"] < last:
             rep.error("D3", f"simulation_time_ns={result['simulation_time_ns']} but an event is stamped {last}")
 
+    # R9: a satisfied/hit condition points at an event that exists
+    if events:
+        seqs = {ev["seq"] for ev in events}
+        for i, c in enumerate(result.get("conditions", [])):
+            if c.get("seq") is not None and c["seq"] not in seqs:
+                rep.error("R9", f"conditions[{i}].seq={c['seq']} is not an event in events.ndjson")
+
     # D4: every action in the replay appears as an action event, and vice versa
     if replay is not None:
-        ev_seqs = sorted(ev["seq"] for ev in events if ev.get("type") == "action")
-        rp_seqs = sorted(a["seq"] for a in replay["actions"])
+        ev_seqs = sorted(ev["action_seq"] for ev in events if ev.get("type") == "action")
+        rp_seqs = sorted(a["action_seq"] for a in replay["actions"])
         if ev_seqs != rp_seqs:
-            rep.error("D4", f"action seqs differ: events {ev_seqs} vs replay {rp_seqs}")
+            rep.error("D4", f"action_seq differ: events {ev_seqs} vs replay {rp_seqs}")
 
     if caps is not None:
         det = caps["determinism"]

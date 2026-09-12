@@ -1,0 +1,3 @@
+{ "protocol": "agent-sim/0.3", "simulator": "x", "version": "1", "verdict": "fail", "termination_reason": "timeout_simulation",
+  "exit_code": 6, "seed": 1, "deterministic": true, "simulation_time_ns": 10,
+  "artifacts": { "events": "events.ndjson", "replay": "scenario.replay.yaml" } }

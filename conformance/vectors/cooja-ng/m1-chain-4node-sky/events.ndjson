@@ -1,16 +1,16 @@
-{"type":"mote_added","t":0,"node":1}
-{"type":"mote_added","t":0,"node":2}
-{"type":"mote_added","t":0,"node":3}
-{"type":"mote_added","t":0,"node":4}
-{"type":"log","t":812340000,"node":1,"line":"[INFO: Main      ] Starting Contiki-NG-release/v4.9"}
-{"type":"radio","t":815000000,"node":1,"state":"rx","ch":26}
-{"type":"log","t":1203450000,"node":4,"line":"[INFO: Main      ] Starting Contiki-NG-release/v4.9"}
-{"type":"tx","t":2500128000,"node":1,"ch":26,"len":97}
-{"type":"rx","t":2500128000,"node":2,"from":1,"ch":26,"len":97,"rssi":-61.0}
-{"type":"log","t":2503000000,"node":2,"line":"[INFO: RPL       ] rpl_set_preferred_parent: used to be NULL, now is fe80::212:7401:1:101"}
-{"type":"interference","t":14200000000,"node":3,"from":1,"ch":26}
-{"type":"tx","t":41229000000,"node":4,"ch":26,"len":112}
-{"type":"log","t":41230000000,"node":1,"line":"[INFO: App       ] Received request 'hello 1' from fd00::212:7404:4:404"}
-{"type":"tx","t":41600000000,"node":1,"ch":26,"len":112}
-{"type":"log","t":41780000000,"node":4,"line":"[INFO: App       ] Received response 'hello 1' from fd00::212:7401:1:101"}
-{"type":"led","t":41780500000,"node":4,"leds":[0,1,0]}
+{"type":"mote_added","t":0,"node":1,"seq":0}
+{"type":"mote_added","t":0,"node":2,"seq":1}
+{"type":"mote_added","t":0,"node":3,"seq":2}
+{"type":"mote_added","t":0,"node":4,"seq":3}
+{"type":"log","t":812340000,"node":1,"seq":4,"line":"[INFO: Main      ] Starting Contiki-NG-release/v4.9"}
+{"type":"radio","t":815000000,"node":1,"seq":5,"state":"rx","ch":26}
+{"type":"log","t":1203450000,"node":4,"seq":6,"line":"[INFO: Main      ] Starting Contiki-NG-release/v4.9"}
+{"type":"tx","t":2500128000,"node":1,"seq":7,"ch":26,"len":97}
+{"type":"rx","t":2500128000,"node":2,"seq":8,"from":1,"ch":26,"len":97,"rssi":-61.0}
+{"type":"log","t":2503000000,"node":2,"seq":9,"line":"[INFO: RPL       ] rpl_set_preferred_parent: used to be NULL, now is fe80::212:7401:1:101"}
+{"type":"interference","t":14200000000,"node":3,"seq":10,"from":1,"ch":26}
+{"type":"tx","t":41229000000,"node":4,"seq":11,"ch":26,"len":112}
+{"type":"log","t":41230000000,"node":1,"seq":12,"line":"[INFO: App       ] Received request 'hello 1' from fd00::212:7404:4:404"}
+{"type":"tx","t":41600000000,"node":1,"seq":13,"ch":26,"len":112}
+{"type":"log","t":41780000000,"node":4,"seq":14,"line":"[INFO: App       ] Received response 'hello 1' from fd00::212:7401:1:101"}
+{"type":"led","t":41780500000,"node":4,"seq":15,"leds":[0,1,0]}

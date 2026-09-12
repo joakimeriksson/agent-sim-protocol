@@ -4,57 +4,158 @@
   "title": "Agent Simulation Protocol envelope",
   "description": "agent-sim/0.3, provisional. One JSON object per NDJSON line: a request (id + type), a response (id + ok) or an asynchronous event (type + t + node, no id).",
   "oneOf": [
-    { "$ref": "#/$defs/request" },
-    { "$ref": "#/$defs/response" },
-    { "$ref": "#/$defs/event" }
+    {
+      "$ref": "#/$defs/request"
+    },
+    {
+      "$ref": "#/$defs/response"
+    },
+    {
+      "$ref": "#/$defs/event"
+    }
   ],
   "$defs": {
-    "protocol": { "type": "string", "pattern": "^agent-sim/0\\.[0-9]+$" },
-    "id": { "type": "integer", "minimum": 0 },
-    "t": { "type": "integer", "minimum": 0, "description": "simulation time in nanoseconds; a 64-bit integer, never a float" },
-    "node": { "type": "integer", "minimum": 1, "description": "present on every event, also in a standalone single-device simulator (1)" },
+    "protocol": {
+      "type": "string",
+      "pattern": "^agent-sim/0\\.[0-9]+$"
+    },
+    "id": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "t": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "simulation time in nanoseconds; a 64-bit integer, never a float"
+    },
+    "node": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "present on every event, also in a standalone single-device simulator (1)"
+    },
     "operation": {
-      "enum": ["hello", "capabilities", "describe", "configure", "reset", "run_until", "action", "observe", "cancel", "diagnose", "terminate"]
+      "enum": [
+        "hello",
+        "capabilities",
+        "describe",
+        "configure",
+        "reset",
+        "run_until",
+        "action",
+        "observe",
+        "cancel",
+        "diagnose",
+        "terminate"
+      ]
     },
     "error": {
-      "enum": ["assertion_failed", "configuration_error", "invalid_request", "unsupported_operation", "unsupported_capability", "simulation_error", "internal_error", "guest_failure", "timeout", "cancelled"]
+      "enum": [
+        "assertion_failed",
+        "configuration_error",
+        "invalid_request",
+        "unsupported_operation",
+        "unsupported_capability",
+        "simulation_error",
+        "internal_error",
+        "guest_failure",
+        "timeout",
+        "cancelled"
+      ]
     },
     "exit_code": {
-      "description": "0 pass, 1 assertion, 2 configuration or invalid request, 3 unsupported, 4 simulator error, 5 guest failure, 6 timeout, 7 cancelled",
-      "type": "integer", "minimum": 0, "maximum": 7
+      "description": "0 pass, 1 assertion (expired expect window, invariant hit, inconclusive verdict), 2 configuration or invalid request, 3 unsupported, 4 simulator error, 5 guest halted, 6 wall-clock timeout, 7 cancelled",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 7
     },
     "request": {
       "type": "object",
-      "required": ["id", "type"],
+      "required": [
+        "id",
+        "type"
+      ],
       "properties": {
-        "id": { "$ref": "#/$defs/id" },
-        "type": { "$ref": "#/$defs/operation" },
-        "protocol": { "$ref": "#/$defs/protocol" }
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "type": {
+          "$ref": "#/$defs/operation"
+        },
+        "protocol": {
+          "$ref": "#/$defs/protocol"
+        }
       },
-      "not": { "required": ["ok"] }
+      "not": {
+        "required": [
+          "ok"
+        ]
+      }
     },
     "response": {
       "type": "object",
-      "required": ["id", "ok"],
+      "required": [
+        "id",
+        "ok"
+      ],
       "properties": {
-        "id": { "$ref": "#/$defs/id" },
-        "ok": { "type": "boolean" },
-        "error": { "$ref": "#/$defs/error" },
-        "t": { "$ref": "#/$defs/t" },
-        "artifacts": { "$ref": "#/$defs/artifacts" }
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "error": {
+          "$ref": "#/$defs/error"
+        },
+        "t": {
+          "$ref": "#/$defs/t"
+        },
+        "artifacts": {
+          "$ref": "#/$defs/artifacts"
+        }
       },
-      "if": { "properties": { "ok": { "const": false } } },
-      "then": { "required": ["error"] }
+      "if": {
+        "properties": {
+          "ok": {
+            "const": false
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "error"
+        ]
+      }
     },
     "event": {
       "type": "object",
-      "required": ["type", "t", "node"],
+      "required": [
+        "type",
+        "t",
+        "node",
+        "seq"
+      ],
       "properties": {
-        "type": { "type": "string" },
-        "t": { "$ref": "#/$defs/t" },
-        "node": { "$ref": "#/$defs/node" }
+        "type": {
+          "type": "string"
+        },
+        "t": {
+          "$ref": "#/$defs/t"
+        },
+        "node": {
+          "$ref": "#/$defs/node"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "position in the run's event stream, strictly increasing; condition windows are measured in seq"
+        }
       },
-      "not": { "required": ["id"] }
+      "not": {
+        "required": [
+          "id"
+        ]
+      }
     },
     "relative_path": {
       "type": "string",
@@ -65,8 +166,18 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["type", "path"],
-        "properties": { "type": { "type": "string" }, "path": { "$ref": "#/$defs/relative_path" } }
+        "required": [
+          "type",
+          "path"
+        ],
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "path": {
+            "$ref": "#/$defs/relative_path"
+          }
+        }
       }
     }
   }

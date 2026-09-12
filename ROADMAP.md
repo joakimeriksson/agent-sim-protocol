@@ -108,9 +108,19 @@ Batch CLI first, streaming session last. The batch form carries most of the agen
 the conformance surface. Each milestone ends with both simulators passing `conformance/check.py`
 on the same spec version and the Python client running one scenario on each.
 
-Order of work: M1 (Cooja-NG, then esp32sim) → M4 metrics and multi-seed (Cooja-NG only) → M2
-conditions (Cooja-NG, then esp32sim) → M3 → M5 → M6. The milestone numbers are kept as names;
-the sequence is what changed.
+Order of work: M0 corpus check (now, no implementation needed) → M1 (Cooja-NG, then esp32sim)
+→ M4 metrics and multi-seed (Cooja-NG only) → M2 conditions (Cooja-NG, then esp32sim) → M3 →
+M5 → M6. The milestone numbers are kept as names; the sequence is what changed.
+
+### M0 — Corpus check (S, spec repo, now)
+
+The cheapest validation of the hardest part of the spec, and it needs no implementation:
+convert the 93 upstream Contiki-NG Cooja tests with csim's `tools/csc2json.py`, classify each
+test's script, and count how many express fully in `expect` and `invariants` with the closed
+condition set and the `seq`-based windows, how many need one addition to the set, and how many
+need the JS escape hatch. The result is a table in `conformance/corpus/contiki-ng-tests.md`
+naming each test and its category. If the fully-expressible share is poor, the condition set
+changes before either simulator implements it.
 
 Sizes are relative: S is a day or two, M a week, L more, with a coding agent doing most of it.
 
@@ -175,29 +185,26 @@ Exit criterion: `agentsim run cooja-ng examples/cooja-ng-rpl-chain.yaml` returns
 
 ### M2 — Conditions and scenarios (M+M)
 
-Comes after M4 in the sequence. Its first task is the corpus check: convert the 93 upstream
-Contiki-NG Cooja tests (`tools/csc2json.py` already does) and count how many express fully in
-`expect` and `invariants` and how many need the JS escape hatch. That number is the validation
-of the closed condition set; if it is poor, the set changes before esp32sim implements it.
+Comes after M4 in the sequence, with M0's corpus table as its input.
 
-Goal: the shared closed condition set works in both with the evaluation windows in `SPEC.md`,
-`expect` is sequential and `invariants` are run-wide, a failed `expect` returns expected,
-observed and artifacts, exit codes distinguish assertion (1), guest failure (5) and timeout (6),
-and `scenario.replay.yaml` runs back through `run`.
+Goal: the shared closed condition set works in both with the `seq`-based evaluation windows in
+`SPEC.md`, `expect` is sequential and `invariants` are run-wide, an expired `expect` window and
+an invariant hit are both `assertion_failed` (1), a halted guest is `guest_failure` (5), the
+wall-clock bound is `timeout` (6), `metric` conditions in `expect` are evaluated at the end of
+the run, and `scenario.replay.yaml` runs back through `run`.
 
 Spec repo (S): `schema/conditions.json` with the window rules, `scenario-common.json` with
 `expect` and `invariants`; `run_until` and `wall_ms` semantics written down from what the
 implementations did; vectors for a failing `expect` and a hit invariant from each simulator.
 
 csim (S to M), first:
-- the corpus check above, reported in the spec repo as a table.
 - map the existing `wait` + `count` steps onto `expect` and `fail_on` onto `invariants` in
   `result.json`, so the report speaks the shared vocabulary. The steps are already sequential
   with the right windows. No change to the config format yet.
 - accept the shared names as an alternative spelling in `test.expect` and `test.invariants`,
   alongside the existing `steps`, `validators` and `fail_on`.
-- `--wall-timeout`.
-- `metric` conditions wait for M4.
+- `--wall-timeout`; its expiry is the only `timeout` (6).
+- `metric` conditions in `expect`, evaluated at the end of the run over the M4 metrics.
 
 esp32sim (M), after the corpus check has settled the set:
 - a YAML scenario loader that produces the existing `Script` events plus `expect` and
@@ -211,8 +218,10 @@ esp32sim (M), after the corpus check has settled the set:
 - `deterministic: false` in `result.json` when `--net nat` or `--realtime` is active.
 
 Exit criterion: the broken-firmware demo fixture fails with exit 1 and a `result.json` that
-names the failed `expect`, on both a fresh build and in the golden suite; a fixture that panics
-exits 5; `esp32sim run out/scenario.replay.yaml` reproduces a run byte for byte.
+names the failed `expect` with the `seq` of its window's last event, on both a fresh build and
+in the golden suite; a fixture that panics exits 5; a fixture that recovers from an exception
+passes unless an invariant says otherwise; `esp32sim run out/scenario.replay.yaml` reproduces
+a run byte for byte.
 
 ### M3 — Limitations, diagnose, bundle, escalation (S+S+S)
 
@@ -236,9 +245,10 @@ Directly after Cooja-NG's M1, before M2: this is the research payoff and the par
 cannot approximate with grep. csim only. Energest duty cycle and energy into `result.json` with
 definition strings. PDR, latency and route churn over Contiki-NG log conventions, definitions
 stated. `seeds: [...]` loop in `test_runner` with one run directory per seed and an aggregate
-`result.json` that never conceals a failed seed. `metric` conditions in `expect`. The spec repo
-adds `schema/metrics.json` as provisional until esp32sim has any metric at all (instruction
-count and simulation time qualify).
+`result.json` that never conceals a failed seed. Metrics land in `result.json` only; `metric`
+as a condition arrives with M2, which introduces the `expect` spelling. The spec repo adds
+`schema/metrics.json` as provisional until esp32sim has any metric at all (instruction count
+and simulation time qualify).
 
 Exit criterion: one config, five seeds, an aggregate `result.json` with PDR, p95 latency and
 duty cycle per seed and overall, each metric carrying its definition.
@@ -263,10 +273,11 @@ the loop metrics.
 ### M6 — Streaming session and nested diagnostics (M+M)
 
 esp32sim (M): the control-plane session on stdin/stdout: `hello`, `capabilities`, `describe`,
-`configure`, `reset`, `action`, `run_until`, `observe`, `cancel`, `terminate`. The request/reply
-shape is the `--cooja` loop with the roles reversed, but it drives the scheduled run loop (both
-cores), not `run_until_cycle`. Every accepted action goes into `scenario.replay.yaml`. Refused
-when `--cooja` is active.
+`configure` (which installs the invariants), `reset`, `action`, `run_until`, `observe`,
+`cancel`, `terminate`. The request/reply shape is the `--cooja` loop with the roles reversed,
+but it drives the scheduled run loop (both cores), not `run_until_cycle`. An invariant hit ends
+the current `run_until` with `assertion_failed` and leaves the session open. Every accepted
+action goes into `scenario.replay.yaml`. Refused when `--cooja` is active.
 
 csim (M): the same session on `test_runner`, smaller in scope since most agents will use the
 batch form; and the nested-node diagnostics: an optional `diag` list in the lock-step `done`

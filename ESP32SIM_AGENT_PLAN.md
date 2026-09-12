@@ -67,13 +67,15 @@ priority 5:
   requested. Events are never interleaved with the console on stdout; stdout stays the console.
 - `events.ndjson`: console lines, GPIO edges, exceptions, unimplemented register accesses, stub
   hits, script actions and the end-of-run figures, `t` in ns (the bus cycle counter, as
-  `--cooja` already stamps), `node: 1` on every event. Event names shared with the lock-step
+  `--cooja` already stamps), `node: 1` and `seq` on every event. Event names shared with the lock-step
   protocol (`log`, `serial`, `radio`, `led`) plus `gpio`, `exception`, `unimplemented_access`,
   `stub`.
 - `result.json` with `termination_reason` and `verdict`; artifact paths relative to the run
   directory. Wall time, commit and run directory are the fields a golden strips.
 - Exit codes from the shared table in `SPEC.md`: 0 pass, 1 assertion, 2 configuration,
-  3 unsupported, 4 simulator error, 5 guest failure, 6 timeout, 7 cancelled.
+  3 unsupported, 4 simulator error, 5 guest halted (panic, abort, unrecoverable fault),
+  6 wall-clock timeout, 7 cancelled. A recovered exception is an `exception` event, not a
+  failure; `max_seconds` expiring with an `expect` pending is an assertion failure.
 - `--wall-timeout S` next to `--max-seconds`.
 
 In `--cooja` mode stdin and stdout belong to csim; the control plane is refused there and

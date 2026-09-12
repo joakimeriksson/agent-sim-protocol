@@ -69,8 +69,11 @@ Delta, not a new runner:
   commit, firmware paths and hashes, simulation time, wall time, per-condition outcome, metrics,
   artifact paths.
 - Exit codes from the shared table in `SPEC.md`: 0 pass, 1 assertion, 2 configuration,
-  3 unsupported, 4 simulator error, 5 guest failure, 6 timeout, 7 cancelled. The current
-  fail-loud cases (no criteria, no verdict, unknown medium) map to `configuration_error`.
+  3 unsupported, 4 simulator error, 5 guest halted, 6 wall-clock timeout, 7 cancelled. The
+  current fail-loud cases (no criteria, no verdict, unknown medium) map to
+  `configuration_error`; `timeout_ms` expiring with a step pending is `assertion_failed`, with
+  `timeout_is_success` or nothing pending it is `completed`; `testFailed()` is
+  `guest_failure`.
 
 ```json
 {
@@ -146,8 +149,9 @@ expect:
   - metric: { name: radio_duty_cycle, op: "<", value: 0.03 }
 ```
 
-A `metric` in `expect` is evaluated at the end of the run; an unavailable metric makes the
-verdict `inconclusive`, not a pass.
+A `metric` in `expect` is evaluated at the end of the run (the spec's window rule: a metric is
+evaluated when its window closes); an unavailable metric makes the verdict `inconclusive`, not
+a pass, exit 1.
 
 JS scripts remain the escape hatch and are advertised as such.
 
@@ -258,7 +262,7 @@ Contiki-NG, and metrics are the payoff.
 2. `events.ndjson` export (Phase 2)
 3. energest metrics with definitions; PDR, latency and route churn over log conventions (Phase 4)
 4. `metric` conditions and multi-seed aggregate (Phase 5)
-5. corpus check: how many of the 93 upstream Contiki-NG tests fit `expect` and `invariants` without JS (Phase 5)
+5. corpus check: how many of the 93 upstream Contiki-NG tests fit `expect` and `invariants` without JS (Phase 5; runs now, before Phase 1, as `ROADMAP.md` M0)
 6. capabilities with limitations (Phase 6)
 7. new actions: link loss, injection, node reset (Phase 3)
 8. bundle and `AGENTS.md` escalation workflow (Phases 7, 8)

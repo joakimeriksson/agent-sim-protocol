@@ -1,12 +1,12 @@
-{"type":"log","t":21875000,"node":1,"line":"ESP-ROM:esp32s3-20210327"}
-{"type":"log","t":22031250,"node":1,"line":"Build:Mar 27 2021"}
-{"type":"log","t":22187500,"node":1,"line":"rst:0x1 (POWERON),boot:0x8 (SPI_FAST_FLASH_BOOT)"}
-{"type":"log","t":95312500,"node":1,"line":"I (27) boot: ESP-IDF v5.3 2nd stage bootloader"}
-{"type":"log","t":310937500,"node":1,"line":"I (268) cpu_start: Pro cpu start user code"}
-{"type":"log","t":398437500,"node":1,"line":"I (290) main_task: Calling app_main()"}
-{"type":"log","t":412300000,"node":1,"line":"Hello world!"}
-{"type":"log","t":412500000,"node":1,"line":"This is esp32s3 chip with 2 CPU core(s), WiFi/BLE, silicon revision v0.2, 8MB external flash"}
-{"type":"log","t":412700000,"node":1,"line":"Minimum free heap size: 390132 bytes"}
-{"type":"log","t":412900000,"node":1,"line":"Restarting in 10 seconds..."}
-{"type":"log","t":1412900000,"node":1,"line":"Restarting in 9 seconds..."}
-{"type":"log","t":2412900000,"node":1,"line":"Restarting in 8 seconds..."}
+{"type":"log","t":21875000,"node":1,"seq":0,"line":"ESP-ROM:esp32s3-20210327"}
+{"type":"log","t":22031250,"node":1,"seq":1,"line":"Build:Mar 27 2021"}
+{"type":"log","t":22187500,"node":1,"seq":2,"line":"rst:0x1 (POWERON),boot:0x8 (SPI_FAST_FLASH_BOOT)"}
+{"type":"log","t":95312500,"node":1,"seq":3,"line":"I (27) boot: ESP-IDF v5.3 2nd stage bootloader"}
+{"type":"log","t":310937500,"node":1,"seq":4,"line":"I (268) cpu_start: Pro cpu start user code"}
+{"type":"log","t":398437500,"node":1,"seq":5,"line":"I (290) main_task: Calling app_main()"}
+{"type":"log","t":412300000,"node":1,"seq":6,"line":"Hello world!"}
+{"type":"log","t":412500000,"node":1,"seq":7,"line":"This is esp32s3 chip with 2 CPU core(s), WiFi/BLE, silicon revision v0.2, 8MB external flash"}
+{"type":"log","t":412700000,"node":1,"seq":8,"line":"Minimum free heap size: 390132 bytes"}
+{"type":"log","t":412900000,"node":1,"seq":9,"line":"Restarting in 10 seconds..."}
+{"type":"log","t":1412900000,"node":1,"seq":10,"line":"Restarting in 9 seconds..."}
+{"type":"log","t":2412900000,"node":1,"seq":11,"line":"Restarting in 8 seconds..."}

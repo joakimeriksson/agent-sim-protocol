@@ -4,28 +4,86 @@
   "title": "scenario.replay.yaml",
   "description": "agent-sim/0.3, provisional. Written into run_dir by every run: the initial configuration, the effective seed, the resolved firmware hashes and every accepted action with its effective t and sequence number. It is a valid scenario for `run`.",
   "type": "object",
-  "required": ["protocol", "simulator", "version", "seed", "config", "actions"],
+  "required": [
+    "protocol",
+    "simulator",
+    "version",
+    "seed",
+    "config",
+    "actions"
+  ],
   "properties": {
-    "protocol": { "$ref": "envelope.json#/$defs/protocol" },
-    "simulator": { "type": "string", "minLength": 1 },
-    "version": { "type": "string", "minLength": 1 },
-    "commit": { "type": "string" },
-    "seed": { "type": ["integer", "null"] },
+    "protocol": {
+      "$ref": "envelope.json#/$defs/protocol"
+    },
+    "simulator": {
+      "type": "string",
+      "minLength": 1
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "commit": {
+      "type": "string"
+    },
+    "seed": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
     "firmware": {
       "type": "array",
-      "items": { "type": "object", "required": ["path", "sha256"], "properties": { "path": { "type": "string" }, "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" } } }
+      "items": {
+        "type": "object",
+        "required": [
+          "path",
+          "sha256"
+        ],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      }
     },
-    "config": { "type": "object", "description": "the simulator's own scenario/config document as it was at reset, before any action" },
+    "config": {
+      "type": "object",
+      "description": "the simulator's own scenario/config document as it was at reset, before any action"
+    },
     "actions": {
       "type": "array",
       "items": {
-        "type": "object", "required": ["seq", "t", "name"],
+        "type": "object",
+        "required": [
+          "action_seq",
+          "t",
+          "name"
+        ],
         "properties": {
-          "seq": { "type": "integer", "minimum": 0 },
-          "t": { "type": "integer", "minimum": 0 },
-          "name": { "type": "string" },
-          "args": { "type": "object" },
-          "node": { "type": "integer", "minimum": 1 }
+          "action_seq": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "t": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "name": {
+            "type": "string"
+          },
+          "args": {
+            "type": "object"
+          },
+          "node": {
+            "type": "integer",
+            "minimum": 1
+          }
         }
       }
     }

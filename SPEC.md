@@ -1,5 +1,23 @@
 # Agent Simulation Protocol — Strawman v0.3
 
+## Status
+
+Everything in this document is **provisional** until the table below says otherwise. A concept
+becomes `provisional` when one simulator emits it and a recorded vector exists, and `stable`
+when both do. Until then the schemas under `schema/` are the intended shape, not evidence.
+
+| concept | Cooja-NG | esp32sim |
+| --- | --- | --- |
+| `capabilities` | none | none |
+| `result.json` | none | none |
+| `events.ndjson` | none | none |
+| `scenario.replay.yaml` | none | none |
+| `expect` / `invariants` | none | none |
+| conditions, closed set | none | none |
+| metrics | none | none |
+| session (`hello` … `terminate`) | none | none |
+| `cancel`, `wall_ms` | none | none |
+
 ## Purpose
 
 A small simulator-neutral protocol for coding and research agents operating executable simulation environments.
@@ -157,10 +175,11 @@ cycle is 6.25 ns, so microseconds would lose information the radio timing depend
 may use convenience units (`simulation_ms`) but results never do.
 
 Every event carries `node`, also in a standalone single-device simulator (`node: 1`), so a
-consumer never branches on whether the run was nested.
+consumer never branches on whether the run was nested, and `seq`, its position in the run's
+event stream, strictly increasing, which is what condition windows are measured in.
 
 ```json
-{"type":"log","t":124100000,"node":1,"line":"ready"}
+{"type":"log","t":124100000,"node":1,"seq":812,"line":"ready"}
 ```
 
 ## Actions
@@ -178,8 +197,9 @@ actions in a scenario file are the same objects with `at` set. An `at` in the pa
 `invalid_request`. Simultaneous actions apply in request order. A rejected action (capability or
 state validation) is reported and not recorded in the replay.
 
-Every accepted action is recorded with its effective `t` and a monotonic sequence number in
-`scenario.replay.yaml` (below).
+Every accepted action is recorded with its effective `t` and a monotonic `action_seq` in
+`scenario.replay.yaml` (below), and appears in the event stream as an `action` event carrying
+the same `action_seq`.
 
 ## Observations
 
@@ -206,10 +226,17 @@ which:
 With `"assert": true`, `reached: false` is instead an `assertion_failed` error carrying expected,
 observed and artifacts. There is no separate assertion operation.
 
-`timeout.simulation_ms` bounds simulation time; `timeout.wall_ms` bounds host time, for a guest
-that spins or a host that is slow. Either expiring is `timeout`, and the result says which.
-`cancel` with the `id` of a running `run_until` stops it at the next scheduling point with
-`termination_reason: cancelled`.
+`timeout.simulation_ms` bounds simulation time: when it expires the condition was not reached
+in its window, which is `reached: false` and, under `assert: true`, `assertion_failed`. It is
+never the `timeout` error. `timeout.wall_ms` bounds host time, for a guest that spins or a host
+that is slow; only its expiry is the `timeout` error (exit 6), because only then did the
+simulator fail to deliver an answer. `cancel` with the `id` of a running `run_until` stops it at
+the next scheduling point with `termination_reason: cancelled`.
+
+In a session, the run-wide `invariants` are installed by `configure` (the same list a scenario
+file carries) and may be replaced by a later `configure`. A hit ends the current `run_until`
+with `assertion_failed`; the session stays open so the agent can `diagnose`. `no_event` inside
+a `run_until` condition is `invalid_request`: it is an invariant, not something to wait for.
 
 ### Conditions
 
@@ -230,13 +257,18 @@ Simulator-specific conditions are advertised alongside (esp32sim: `probe_reached
 
 ### Evaluation windows
 
+Every event carries `seq`, its position in the run's event stream, strictly increasing across
+the run. Windows are defined by `seq`, not by `t`, because many events share a `t`.
+
 | rule | |
 | --- | --- |
-| window start | a `run_until` counts events with `t` at or after the request was issued; an `expect` entry's window starts when the previous entry was reached, or at reset for the first |
-| state conditions | `gpio_level`, `time`, `metric` are satisfied immediately, at the current `t`, if already true |
+| window start | a `run_until` counts events with `seq` greater than the last event emitted before the request; an `expect` entry's window starts after the event that satisfied the previous entry, or at `seq` 0 for the first |
+| event conditions | `log_contains`, `log_matches`, `event_count` are satisfied by the first event in the window that completes them; the result records that event's `seq` and `t` |
+| state conditions | `gpio_level`, `time` are satisfied immediately, at the current `t`, if already true |
+| `metric` | evaluated when its window closes: at the end of the run for an `expect` entry (all `metric` entries are evaluated then, whatever their position), at `simulation_ms` for a session `run_until`. A metric needs the whole window's data; there is nothing to satisfy early |
 | `event_count` | takes `since: previous \| reset`, default `previous` |
 | `count` on log conditions | counts within the window |
-| timeout | measured from the window start |
+| timeout | `within_ms` / `simulation_ms` is measured from the window start; expiry is `assertion_failed`, not `timeout` |
 
 ### expect and invariants
 
@@ -250,9 +282,17 @@ expect:
   - log_contains: { text: "button pressed" }
   - gpio_level:   { pin: 5, value: 1, within_ms: 200 }
 invariants:
-  - no_event: { type: exception }               # a hit is guest_failure
-  - no_event: { type: unimplemented_access }     # a hit is assertion_failed, with the limitation named
+  - no_event: { type: exception }
+  - no_event: { type: unimplemented_access }
 ```
+
+An invariant hit is always `assertion_failed` (exit 1), whatever the event was: the scenario
+declared the requirement and the guest did not meet it. `guest_failure` (exit 5) is something
+else: the guest halted on its own, by panic, abort, an unrecoverable fault the simulator cannot
+continue from, or the guest's own declared failure line (Cooja-NG's `testFailed`, a firmware's
+`FAIL:` convention). A recovered exception is an `exception` event and nothing more, so
+exception-recovery firmware is testable: assert on it with an invariant or with `event_count`,
+or leave it alone.
 
 `invariants` maps onto Cooja-NG's existing `fail_on`. Cooja-NG's JS scripts stay as an explicit,
 simulator-specific escape hatch. A general predicate language is not standardized in this
@@ -311,8 +351,8 @@ Every run writes at least `events.ndjson`, `scenario.replay.yaml`, `config.effec
 (what actually ran, with the effective seed and version) and `result.json`. In a response,
 `artifacts` is a list of `{type, path}`; in `result.json` it is an object keyed by name with
 `events` and `replay` always present. `result.json` lists every `expect` entry and invariant
-under `conditions` as `{kind, condition, ok, t}`; `ok` means reached for an `expect` and never
-hit for an invariant. The schemas under `schema/` are the normative form of all of this, and
+under `conditions` as `{kind, condition, ok, t, seq}`; `ok` means reached for an `expect` and
+never hit for an invariant, and `seq` is the event that satisfied or hit it. The schemas under `schema/` are the normative form of all of this, and
 `conformance/check.py` enforces the rules the schemas cannot express. Traces, VCD, pcap,
 coverage, register accesses and metric inputs are added on request or on failure.
 
@@ -342,26 +382,26 @@ tells an agent in a shell loop the class without opening `result.json`:
 
 | error | exit code | meaning |
 | --- | --- | --- |
-| (none) | 0 | run completed, every `expect` reached, no invariant hit |
-| `assertion_failed` | 1 | the guest ran; an `expect` or an `invariant` did not hold |
+| (none) | 0 | run completed, every `expect` reached, no invariant hit, verdict `pass` |
+| `assertion_failed` | 1 | the guest ran; an `expect` window expired or an invariant was hit; also a `completed` run whose verdict is `inconclusive` (a metric unavailable): not a pass, and the guest did nothing wrong |
 | `configuration_error` | 2 | bad scenario, missing firmware/ROM/Contiki tree, unknown key, unknown medium or plugin |
-| `invalid_request` | 2 | malformed protocol message, `at` in the past |
+| `invalid_request` | 2 | malformed protocol message, `at` in the past, `no_event` in a `run_until` |
 | `unsupported_operation` / `unsupported_capability` | 3 | the simulator declares it cannot do this |
 | `simulation_error` / `internal_error` | 4 | the simulator itself failed, including a nested peer that vanished |
-| `guest_failure` | 5 | panic, exception, or the guest's own FAIL line |
-| `timeout` | 6 | the condition was not reached in simulation or wall time |
+| `guest_failure` | 5 | the guest halted: panic, abort, unrecoverable fault, or its own declared FAIL line |
+| `timeout` | 6 | the wall-clock bound expired; the simulator did not deliver an answer |
 | `cancelled` | 7 | stopped by `cancel` or a signal |
 
-A `completed` run whose verdict is `inconclusive` (a metric unavailable) exits 1, the assertion
-class: it is not a pass and the guest did nothing wrong.
+Simulation time running out is never `timeout`: with an `expect` pending it is
+`assertion_failed`, with nothing pending it is `completed`.
 
 Exit code 3 exists so agents do not treat unsupported simulator behavior as a firmware defect.
 Cooja-NG's existing fail-loud contract (no criteria, script without verdict, unknown medium)
 maps to `configuration_error`.
 
-Results carry independent `termination_reason` (completed, assertion_failed, timeout_simulation,
-timeout_wall, cancelled, guest_failure, peer_disconnect, simulator_error) and `verdict` (pass,
-fail, inconclusive) fields. A completed run with an inconclusive or unavailable metric is
+Results carry independent `termination_reason` (completed, assertion_failed, timeout_wall,
+cancelled, guest_failure, peer_disconnect, simulator_error) and `verdict` (pass, fail,
+inconclusive) fields. A completed run with an inconclusive or unavailable metric is
 `inconclusive`, not a pass.
 
 ## Simulator bug workflow
@@ -407,7 +447,10 @@ What each simulator has today is inventoried in the two plans (`ESP32SIM_AGENT_P
 
 Decided so far: artifacts are files in a run directory; snapshots are out; assert is a flag on
 `run_until`; time is ns; `expect` is sequential and `invariants` are run-wide, with the windows
-above; replay is a scenario file; exit codes distinguish assertion, guest failure and timeout.
+above measured in `seq`; a metric is evaluated when its window closes; an expired window is an
+assertion failure and `timeout` is the wall-clock bound only; an invariant hit is an assertion
+failure and `guest_failure` is a halted guest; replay is a scenario file; exit codes
+distinguish assertion, guest failure and timeout; an inconclusive verdict exits 1.
 
 Still open. Implement in both simulators and answer:
 

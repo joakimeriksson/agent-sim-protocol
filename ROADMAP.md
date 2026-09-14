@@ -288,6 +288,34 @@ reply so esp32sim's unimplemented accesses and stub hits reach `events.ndjson` a
 Spec repo (S): session and `cancel` semantics written from the implementation; the per-action
 and `run_until` MCP tools added to the adapter; vectors recorded from both.
 
+### M7 — Operational hardening candidates (after M6)
+
+This is a backlog, not part of agent-sim/0.3. Each item enters `SPEC.md` and `schema/` only
+after one reference simulator implements it and supplies a recorded vector:
+
+- session identity, request ancestry, and a single-writer control lease so a GUI, agent and CI
+  observer cannot race simulation-changing commands;
+- declared resource budgets for nodes, events, instructions, output bytes and wall time, with
+  partial evidence retained when a limit or cancellation stops a run;
+- selection-sensitive capabilities: an action says which target, radio model and execution
+  mode support it, plus protocol-version negotiation rather than one assumed version;
+- event subscriptions, filters, bounded buffering and an explicit overflow event. A consumer
+  must be able to tell that its observation or metric input is incomplete;
+- capability declarations for host effects: network access, filesystem access, subprocesses,
+  dynamic libraries and external devices, so CI can reject an experiment before running it;
+- explicit attach, detach, pause, resume and control-transfer behavior for human/agent handoff;
+- stable node, mote-slot and radio identities across remove/re-add and nested simulators;
+- versioned metric definitions with unit, scope, sample count and validity
+  (`valid`, `unavailable`, `inconclusive`);
+- a differential comparison tool that runs two builds/configurations with one replay and reports
+  the first divergent event, outcome or metric;
+- conformance cases for malformed sessions, command races, cancellation, resource limits,
+  stream overflow, replay equivalence, artifact integrity and nested-peer failure.
+
+The spec-repo checker may add auxiliary tooling before these become protocol fields. In v0.3,
+`check.py manifest` hashes the files referenced by a run directory for CI archiving, while the
+manifest itself remains outside the protocol schema.
+
 ## 3. Sequencing across the two repos
 
 Cooja-NG leads every milestone that has a Cooja-NG part; esp32sim follows once the schemas have

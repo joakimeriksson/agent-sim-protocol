@@ -1,6 +1,9 @@
 """The client against the recorded vectors (no simulator needed)."""
 import sys
+import json
 from pathlib import Path
+
+import pytest
 
 sys.path.insert(0, str(Path(__file__).parent))
 import agentsim  # noqa: E402
@@ -23,3 +26,21 @@ def test_reads_esp32sim_vector():
     r = agentsim.read_result(vec)
     assert r["seed"] is None and r["deterministic"] is True
     assert agentsim.failed_conditions(r) == []
+
+
+def test_result_rejects_a_different_protocol(tmp_path):
+    (tmp_path / "result.json").write_text(json.dumps({"protocol": "agent-sim/0.2"}), encoding="utf-8")
+    with pytest.raises(agentsim.ProtocolError, match="implements 'agent-sim/0.3'"):
+        agentsim.read_result(tmp_path)
+
+
+def test_artifact_rejects_path_outside_run_dir(tmp_path):
+    run = agentsim.RunResult(
+        exit_code=0,
+        run_dir=tmp_path,
+        result={"artifacts": {"events": "../events.ndjson"}},
+        stdout="",
+        stderr="",
+    )
+    with pytest.raises(agentsim.ProtocolError, match="escapes run directory"):
+        run.artifact("events")

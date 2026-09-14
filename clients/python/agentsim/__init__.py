@@ -21,6 +21,28 @@ import yaml
 PROTOCOL = "agent-sim/0.3"
 
 
+class ProtocolError(ValueError):
+    """A simulator result or artifact reference violates the client contract."""
+
+
+def _require_protocol(doc: dict, source: str) -> None:
+    actual = doc.get("protocol")
+    if actual != PROTOCOL:
+        raise ProtocolError(f"{source} uses {actual!r}; this client implements {PROTOCOL!r}")
+
+
+def _artifact_path(run_dir: Path, rel: str) -> Path:
+    if not isinstance(rel, str) or not rel:
+        raise ProtocolError(f"invalid artifact path {rel!r}")
+    root = run_dir.resolve()
+    path = (run_dir / rel).resolve()
+    try:
+        path.relative_to(root)
+    except ValueError as e:
+        raise ProtocolError(f"artifact path escapes run directory: {rel!r}") from e
+    return path
+
+
 @dataclass
 class RunResult:
     exit_code: int
@@ -44,7 +66,13 @@ class RunResult:
         return read_replay(self.run_dir, self.result)
 
     def artifact(self, name: str) -> Path:
-        return self.run_dir / self.result["artifacts"][name]
+        if self.result is None:
+            raise ProtocolError("run has no result.json")
+        try:
+            rel = self.result["artifacts"][name]
+        except KeyError as e:
+            raise ProtocolError(f"run has no artifact named {name!r}") from e
+        return _artifact_path(self.run_dir, rel)
 
 
 def capabilities(cmd: Sequence[str], timeout: float = 30) -> dict:
@@ -52,7 +80,9 @@ def capabilities(cmd: Sequence[str], timeout: float = 30) -> dict:
     p = subprocess.run([*cmd, "capabilities", "--json"], capture_output=True, text=True, timeout=timeout, check=False)
     if p.returncode != 0:
         raise RuntimeError(f"{cmd[0]} capabilities failed ({p.returncode}): {p.stderr.strip()}")
-    return json.loads(p.stdout)
+    doc = json.loads(p.stdout)
+    _require_protocol(doc, f"{cmd[0]} capabilities")
+    return doc
 
 
 def run(cmd: Sequence[str], scenario: str | Path, run_dir: str | Path,
@@ -74,14 +104,16 @@ def read_result(run_dir: str | Path) -> Optional[dict]:
     if not p.exists():
         return None
     with open(p, encoding="utf-8") as f:
-        return json.load(f)
+        result = json.load(f)
+    _require_protocol(result, str(p))
+    return result
 
 
 def iter_events(run_dir: str | Path, result: Optional[dict] = None) -> Iterator[dict]:
     run_dir = Path(run_dir)
     result = result or read_result(run_dir) or {}
     rel = result.get("artifacts", {}).get("events", "events.ndjson")
-    with open(run_dir / rel, encoding="utf-8") as f:
+    with open(_artifact_path(run_dir, rel), encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if line:
@@ -92,7 +124,7 @@ def read_replay(run_dir: str | Path, result: Optional[dict] = None) -> Optional[
     run_dir = Path(run_dir)
     result = result or read_result(run_dir) or {}
     rel = result.get("artifacts", {}).get("replay", "scenario.replay.yaml")
-    p = run_dir / rel
+    p = _artifact_path(run_dir, rel)
     if not p.exists():
         return None
     with open(p, encoding="utf-8") as f:

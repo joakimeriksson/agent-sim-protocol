@@ -26,8 +26,13 @@ diagnostics, over NDJSON and a batch CLI.
 uv sync --group dev
 uv run python conformance/check.py vectors          # every vector passes, every negative trips its rule
 uv run python conformance/check.py run-dir out/x    # a simulator's run directory
+uv run python conformance/check.py manifest out/x   # deterministic sizes + SHA-256 for archiving
 uv run pytest -q
 ```
+
+`manifest` is integrity tooling rather than a v0.3 protocol artifact. It hashes `result.json`,
+every artifact referenced by it, and `capabilities.json` when present. This lets CI attach a
+small checksum file beside an archived run without extending a provisional simulator schema.
 
 The spec records what the implementations do; it does not lead them. Every vector today is
 hand-written and says so in its `meta.json`; the first recorded Cooja-NG run replaces its vector.

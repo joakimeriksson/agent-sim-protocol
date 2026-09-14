@@ -6,6 +6,7 @@
     check.py events FILE              validate an events.ndjson
     check.py replay FILE              validate a scenario.replay.yaml
     check.py run-dir DIR              all of the above for one run directory, plus the cross-file rules
+    check.py manifest DIR             validate a run directory and emit artifact sizes + SHA-256
     check.py vectors [ROOT]           every recorded vector under conformance/vectors must pass,
                                       every negative vector must fail with the rule it names
 
@@ -16,9 +17,11 @@ the one it expects to trip.  Warnings (W*) do not fail a check.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import sys
+from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterable
@@ -238,6 +241,8 @@ def check_run_dir(run_dir: Path, rep: Report) -> None:
             continue
         if not p.exists():
             rep.error("D2", f"artifacts.{name} = {rel!r} does not exist")
+        elif not p.is_file():
+            rep.error("D2", f"artifacts.{name} = {rel!r} is not a regular file")
 
     events_rel = result["artifacts"]["events"]
     replay_rel = result["artifacts"]["replay"]
@@ -284,6 +289,39 @@ def check_run_dir(run_dir: Path, rep: Report) -> None:
         rp_seqs = sorted(a["action_seq"] for a in replay["actions"])
         if ev_seqs != rp_seqs:
             rep.error("D4", f"action_seq differ: events {ev_seqs} vs replay {rp_seqs}")
+        else:
+            event_actions = {
+                ev["action_seq"]: ev for ev in events if ev.get("type") == "action"
+            }
+            for action in replay["actions"]:
+                event = event_actions[action["action_seq"]]
+                for field in ("t", "name"):
+                    if event.get(field) != action.get(field):
+                        rep.error(
+                            "D4",
+                            f"action_seq {action['action_seq']} has {field}={event.get(field)!r} "
+                            f"in events but {action.get(field)!r} in replay",
+                        )
+                if event.get("args", {}) != action.get("args", {}):
+                    rep.error("D4", f"action_seq {action['action_seq']} args differ between events and replay")
+                if "node" in action and event.get("node") != action["node"]:
+                    rep.error("D4", f"action_seq {action['action_seq']} node differs between events and replay")
+
+        # D5: replay identifies the exact run, including firmware inputs.
+        for field in ("simulator", "version", "commit", "seed"):
+            if replay.get(field) != result.get(field):
+                rep.error(
+                    "D5",
+                    f"{field} differs: result {result.get(field)!r} vs replay {replay.get(field)!r}",
+                )
+        result_firmware = Counter(
+            (f["path"], f["sha256"]) for f in result.get("firmware", [])
+        )
+        replay_firmware = Counter(
+            (f["path"], f["sha256"]) for f in replay.get("firmware", [])
+        )
+        if result_firmware != replay_firmware:
+            rep.error("D5", "firmware path/hash entries differ between result and replay")
 
     if caps is not None:
         det = caps["determinism"]
@@ -303,6 +341,61 @@ def check_run_dir(run_dir: Path, rep: Report) -> None:
             rep.error("C1", f"event types not in capabilities.observations: {sorted(unadvertised)}")
         if result["simulator"] != caps["simulator"]:
             rep.error("R5", f"simulator differs: result {result['simulator']!r}, capabilities {caps['simulator']!r}")
+
+
+def artifact_manifest(run_dir: Path, rep: Report) -> dict:
+    """Return a deterministic integrity manifest for a run directory.
+
+    This is tooling output, not part of agent-sim/0.3. It is useful when a CI job archives or
+    transports a run directory: the receiver can hash the listed files again and compare.
+    """
+    check_run_dir(run_dir, rep)
+    if not rep.ok:
+        return {}
+
+    result_path = run_dir / "result.json"
+    result = _read(result_path, rep)
+    if result is None:
+        return {}
+    if not _schema_errors("result", result, rep, "S-RES"):
+        return {}
+
+    entries = [("result", "result.json")]
+    entries.extend(sorted(result["artifacts"].items()))
+    if (run_dir / "capabilities.json").is_file():
+        entries.append(("capabilities", "capabilities.json"))
+
+    artifacts = []
+    seen_paths = set()
+    for name, rel in entries:
+        if rel in seen_paths:
+            continue
+        seen_paths.add(rel)
+        path = run_dir / rel
+        try:
+            resolved = path.resolve(strict=True)
+            resolved.relative_to(run_dir.resolve())
+        except (OSError, ValueError) as e:
+            rep.error("M1", f"{name} = {rel!r} is not a contained artifact: {e}")
+            continue
+        if not resolved.is_file():
+            rep.error("M1", f"{name} = {rel!r} is not a regular file")
+            continue
+        digest = hashlib.sha256()
+        try:
+            with open(resolved, "rb") as f:
+                for chunk in iter(lambda: f.read(1024 * 1024), b""):
+                    digest.update(chunk)
+        except OSError as e:
+            rep.error("M1", f"cannot hash {rel!r}: {e}")
+            continue
+        artifacts.append({
+            "name": name,
+            "path": rel,
+            "bytes": resolved.stat().st_size,
+            "sha256": digest.hexdigest(),
+        })
+    return {"format": "agent-sim-artifacts/1", "artifacts": artifacts}
 
 
 # ---------------------------------------------------------------- vectors
@@ -363,6 +456,9 @@ def main(argv=None) -> int:
         sub.add_parser(c).add_argument("file", type=Path)
     sub.add_parser("run-dir").add_argument("dir", type=Path)
     sub.add_parser("vectors").add_argument("root", type=Path, nargs="?", default=HERE / "vectors")
+    manifest_parser = sub.add_parser("manifest", help="write a SHA-256 manifest for a run directory")
+    manifest_parser.add_argument("dir", type=Path)
+    manifest_parser.add_argument("--output", "-o", type=Path, help="output file; default is stdout")
     args = ap.parse_args(argv)
 
     if args.cmd == "vectors":
@@ -375,6 +471,22 @@ def main(argv=None) -> int:
         failed = [r for r in reports if not r.ok]
         print(f"{len(reports) - len(failed)}/{len(reports)} vectors ok")
         return 1 if failed else 0
+
+    if args.cmd == "manifest":
+        if not args.dir.is_dir():
+            print(f"no such directory: {args.dir}", file=sys.stderr)
+            return 2
+        rep = Report(str(args.dir))
+        manifest = artifact_manifest(args.dir, rep)
+        if not rep.ok:
+            rep.print(out=sys.stderr)
+            return 1
+        rendered = json.dumps(manifest, indent=2, sort_keys=True) + "\n"
+        if args.output:
+            args.output.write_text(rendered, encoding="utf-8")
+        else:
+            sys.stdout.write(rendered)
+        return 0
 
     rep = Report(str(args.dir if args.cmd == "run-dir" else args.file))
     if args.cmd == "run-dir":

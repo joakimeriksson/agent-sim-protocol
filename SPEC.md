@@ -58,6 +58,12 @@ talks to Cooja-NG only. Per-node facilities (esp32sim's traces, VCD, unimplement
 log) surface through Cooja-NG as node-scoped artifacts and diagnostics. A simulator that can be
 nested advertises `nestable: true` and, when nested, refuses control-plane connections.
 
+Configuration of a nested node is a passthrough: the outer simulator's scenario carries an
+opaque `args` object for the node, hands it to the node's simulator untouched in the lock-step
+`hello`, and the node's simulator validates it against its own `scenario_schema`. Neither
+simulator needs to understand the other's peripherals, and the same configuration runs a
+device standalone and as a node.
+
 ## Vocabulary
 
 One name per concept, used in every document:

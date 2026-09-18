@@ -43,6 +43,47 @@ Two existing behaviors must be hardened before exposing this as an agent/CI cont
   firmware and plugin hashes, and the ordered action history with effective simulation times.
   It is itself a valid config for `run`.
 
+## Code audit (csim a09e798, 2026-09-18)
+
+Checked against the code, not the docs. Every M1 and M2 item is an additive hook on a seam
+that exists; three items need a small kernel or protocol change; two are in no plan before
+this note.
+
+Easy, on existing seams:
+
+| protocol concept | seam in csim |
+| --- | --- |
+| capabilities | `sim_registry_t` holds boards, mote kinds, services and media as arrays with counts; enumerate them, add static action and condition lists |
+| `events.ndjson` | every service gets every kernel event through `sim_service_ops_t.on_event` with `time_ns`, `mote_index`, and the Cooja node id on log lines; `pcap_service.c` and `timeline_service.c` are the template; dispatch is single-threaded and the pump pops in (time, seq) order, so `seq` is a counter in the exporter |
+| `result.json`, exit codes | the runner ends in one place: `json_test_report()` returns the code, the JS verdict folds in, wall time is measured, `--save-config` writes there; firmware paths are in `sim_config` (`char firmware[256]`), hashes are a loader-time addition |
+| `expect` / `invariants` | `json_test_service.c` is already the model: sequential steps, the match counter resets per step (the window starts where the previous step was reached), `fail_on` is checked first on every line, a timed-out step exits 1, validators are whole-run counts (`since: reset`) |
+| medium fallback | one `fprintf` and a fall-through at the custom-medium lookup in the runner; exit 2 is a one-line change |
+| replay | timed actions dispatch at one site in the outer loop; the loaded config is kept; the save-config writer reloads what it wrote |
+| seeds | one seed feeds `radio_medium_set_seed` and an LCG (`x*1103515245+12345`) that draws startup delays in node order; the derivation string can be exact |
+| session `run_until` | the outer loop's `clock_source->next_horizon()` hook lets an external master hand out horizons with sub-stepping at timed actions (the Renode path); a control-plane clock source that reads NDJSON is the session; `sim_runtime_request_stop()` is `cancel` |
+| nested diagnostics | `ext_node.c` ignores unknown output event types on purpose, so esp32sim can emit `diag` today; forwarding it is one branch |
+
+Needs a small change:
+
+1. **`rx` has no sender.** The observer's radio event carries data, length, channel and RSSI,
+   not the transmitter. Add a field to the observer event (kernel change, through
+   `refactor-plan.md`) rather than inferring it in the exporter. Phase 2.
+2. **Metrics have no data path.** `energest_engine_report()` prints strings at teardown; add a
+   numeric accessor for `result.json`. PDR and latency over log lines are a new service. Phase 4.
+3. **Multi-seed.** The runner is one 3200-line main with a restart label for reboots; loop seeds
+   by spawning the runner per seed, as `run-cooja-tests.sh` already does, and aggregate in
+   `cooja-ng run`. Phase 5.
+4. **No wall-clock bound exists.** The outer loop already reads the wall clock for reporting; a
+   check there is `--wall-timeout`. Phase 1.
+5. **No config passthrough for nested nodes.** `ext_node_start()` sends id, position, seed and
+   frame size in `hello`; it does not send `args`, although `external-nodes-plan.md` §4 lists it
+   and esp32sim parses `hello.args`. Add a per-node `args` object to the config and pass it
+   untouched; the node's own simulator validates it against its `scenario_schema`. Phase 10.
+
+Risk is scope, not feasibility: the runner already hosts the UI, the serial bridge, Renode and
+TUN in one file. M1 and M2 are additive hooks there. The session mode is another mode in that
+file, so the refactor plan's runner extraction should land before it.
+
 ## Design principles
 
 - Preserve Cooja as a useful simulator for humans and CI.
@@ -68,6 +109,8 @@ Delta, not a new runner:
 - `result.json`: `verdict` and `termination_reason`, effective seed, Cooja-NG version and
   commit, firmware paths and hashes, simulation time, wall time, per-condition outcome, metrics,
   artifact paths.
+- `--wall-timeout S`: a check in the outer loop against `get_time_ms()`; expiry is `timeout`
+  (6), `termination_reason: timeout_wall`. Nothing bounds wall time today.
 - Exit codes from the shared table in `SPEC.md`: 0 pass, 1 assertion, 2 configuration,
   3 unsupported, 4 simulator error, 5 guest halted, 6 wall-clock timeout, 7 cancelled. The
   current fail-loud cases (no criteria, no verdict, unknown medium) map to
@@ -98,7 +141,8 @@ shared with the lock-step protocol where the concept is the same (`log`, `tx`, `
 
 New observation types only where the stream lacks them: routing events and topology changes
 (from log conventions or a Contiki-NG hook, decided per Phase 4), per-node energest counters at
-intervals.
+intervals. One observer change: the radio `rx` event gains the sender's mote index, so `rx`
+lines carry `from`; today the observer has data, length, channel and RSSI only.
 
 ## Phase 3 — Actions
 
@@ -117,7 +161,8 @@ All actions take effect at simulation time and are deterministic for a given exp
 ## Phase 4 — Metrics
 
 Radio duty cycle and energy come from energest and are well defined; ship them first with
-their definition string in the result.
+their definition string in the result. The engine reports formatted strings at teardown today,
+so add a numeric accessor to `energest_engine.h` and read it when `result.json` is written.
 
 Packet delivery ratio, latency and retransmissions need packet identity, which the radio
 observer does not carry. Decide one of:
@@ -161,8 +206,9 @@ Multi-seed:
 seeds: [1, 2, 3, 4, 5]
 ```
 
-The runner writes one run directory per seed plus an aggregate `result.json` that lists every
-seed's verdict and never conceals a failed seed. This enables workloads such as:
+`cooja-ng run` spawns the runner once per seed (the runner is one long main; the upstream test
+wrapper already loops seeds this way), writes one run directory per seed, and an aggregate
+`result.json` that lists every seed's verdict and never conceals a failed seed. This enables workloads such as:
 
 > Improve RPL behavior while maintaining PDR >= 99%, p95 latency < 200 ms, and radio duty cycle < 3% over all specified seeds.
 
@@ -239,8 +285,14 @@ Agents report the experiment definition and evidence, not only conclusions.
 The lock-step protocol already makes esp32sim a Cooja-NG node. The control-plane rule from the
 protocol document applies: when esp32sim is nested, the agent talks to Cooja-NG only, and
 esp32sim's per-node diagnostics (unimplemented accesses, stubs, traces, VCD) surface as
-node-scoped entries in `events.ndjson`, `result.json` and the bundle. This needs the lock-step
-`done` reply to carry a `diag` list, or a side file per external node in `run_dir`.
+node-scoped entries in `events.ndjson`, `result.json` and the bundle. The lock-step parser
+already ignores unknown output event types, so a `diag` event from the node breaks nothing
+today; csim forwards it as an observer event.
+
+Config passthrough: a node of an external type carries an opaque `args` object in the config,
+`ext_node_start()` puts it in `hello.args` untouched, and the node's simulator validates it
+against its own `scenario_schema`. This is how the same board configuration runs standalone
+and as a node. `external-nodes-plan.md` §4 lists `args`; the implementation does not send it.
 
 ```text
              Coding / research agent

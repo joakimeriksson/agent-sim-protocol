@@ -155,7 +155,9 @@ csim (M), first:
   `verdict`, `termination_reason`, seed, version and commit, firmware hashes, simulation and
   wall time, per-step outcome, artifact paths relative to the run directory.
 - an unknown medium, plugin or required service is `configuration_error` before the run, not a
-  warning and a fallback.
+  warning and a fallback (one `fprintf` in the runner today).
+- `--wall-timeout` in the outer loop; nothing bounds wall time today.
+- see the code audit in `COOJA_NG_AGENT_PLAN.md` for the seams each of these lands on.
 - `test_runner capabilities --json` from the board registry, medium registry and plugin
   registry, plus static lists of actions, conditions and services.
 - exit codes mapped in `test_runner` main.
@@ -282,8 +284,10 @@ action goes into `scenario.replay.yaml`. Refused when `--cooja` is active.
 csim (M): the same session on `test_runner`, smaller in scope since most agents will use the
 batch form; and the nested-node diagnostics: an optional `diag` list in the lock-step `done`
 reply so esp32sim's unimplemented accesses and stub hits reach `events.ndjson` and
-`result.json` as node-scoped entries. This is a lock-step protocol change and is documented in
-`external-nodes-plan.md`, not in this spec.
+`result.json` as node-scoped entries (csim's parser ignores unknown event types, so this is
+additive); and the `args` passthrough in the lock-step `hello`, listed in
+`external-nodes-plan.md` §4 but not sent today, so a nested node gets the same configuration
+it would standalone. Both are lock-step protocol changes documented there, not in this spec.
 
 Spec repo (S): session and `cancel` semantics written from the implementation; the per-action
 and `run_until` MCP tools added to the adapter; vectors recorded from both.

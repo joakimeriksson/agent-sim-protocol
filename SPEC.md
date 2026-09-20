@@ -258,6 +258,12 @@ which it supports:
 | `time` | state | simulation time has reached `t` |
 | `metric` | state | a named metric compares against a threshold |
 
+Time in state is the first shared metric family. A simulator that tracks radio or CPU state
+reports, per node, nanoseconds in each state computed from its own transition events, with the
+definition naming the event type it summed. The transitions themselves are the time series.
+Energy is not a protocol concept: it is a script over time in state and a current table the
+user supplies.
+
 Simulator-specific conditions are advertised alongside (esp32sim: `probe_reached`,
 `memory_value`).
 

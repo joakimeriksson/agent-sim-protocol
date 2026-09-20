@@ -244,16 +244,22 @@ run reports the experiment seed.
 ### M4 — Metrics and multi-seed in Cooja-NG (M)
 
 Directly after Cooja-NG's M1, before M2: this is the research payoff and the part a coding agent
-cannot approximate with grep. csim only. Energest duty cycle and energy into `result.json` with
-definition strings. PDR, latency and route churn over Contiki-NG log conventions, definitions
+cannot approximate with grep. csim only. First the state timeline (see "State timing" in
+`COOJA_NG_AGENT_PLAN.md` Phase 4): a cycle-stamped state callback in the CC2420 and Nordic
+radio models, since today Sky and Z1 dwell times are polled at loop cadence and the Nordic
+boards are not tracked at all; CPU transitions with LPM level; time in state per node in
+`result.json`; and the agreement test against the firmware's own energest within one rtimer
+tick. Energy conversion leaves the simulator and becomes `tools/energy.py` here. Then duty
+cycle PDR, latency and route churn over Contiki-NG log conventions, definitions
 stated. `seeds: [...]` loop in `test_runner` with one run directory per seed and an aggregate
 `result.json` that never conceals a failed seed. Metrics land in `result.json` only; `metric`
 as a condition arrives with M2, which introduces the `expect` spelling. The spec repo adds
 `schema/metrics.json` as provisional until esp32sim has any metric at all (instruction count
 and simulation time qualify).
 
-Exit criterion: one config, five seeds, an aggregate `result.json` with PDR, p95 latency and
-duty cycle per seed and overall, each metric carrying its definition.
+Exit criterion: the energest agreement test passes on Sky and CC2538 within one rtimer tick;
+one config, five seeds, an aggregate `result.json` with time in state, duty cycle, PDR and p95
+latency per seed and overall, each metric carrying its definition.
 
 ### M5 — MCP adapter and the demos (S+M+M)
 

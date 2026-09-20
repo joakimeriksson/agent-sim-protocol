@@ -158,11 +158,53 @@ Add, as timed actions and as control-plane actions:
 
 All actions take effect at simulation time and are deterministic for a given experiment and seed.
 
-## Phase 4 — Metrics
+## Phase 4 — State timing and metrics
 
-Radio duty cycle and energy come from energest and are well defined; ship them first with
-their definition string in the result. The engine reports formatted strings at teardown today,
-so add a numeric accessor to `energest_engine.h` and read it when `result.json` is written.
+### State timing (first)
+
+The research primitive is not energy, it is the state timeline: every radio and CPU state
+transition with an exact timestamp, and time in each state per node. Energy conversion is a
+script over that data and leaves the simulator. Two requirements: the transitions are
+timestamped accurately, and they can be collected.
+
+Timing accuracy today, per platform (csim a09e798, 2026-09-20, from the code):
+
+| platform | how radio state reaches the observer | accuracy |
+| --- | --- | --- |
+| CC2538 | `cc2538_rfcore.c` has one `set_state` funnel with `state_callback`; the runner (`mixed_rf_state_handler`) stamps it from the CPU cycle counter (`arm_elf_mote_now_ns`) | exact |
+| MSP430 + CC2420 (Sky, Z1) | polled: `update_radio_state()` once per outer-loop iteration reads `cc2420.state` through the `ui_radio_state` op and stamps it with `sim_runtime_now_ns` | quantised to the loop cadence (the mote's next timer event, milliseconds); a state shorter than one iteration is never seen |
+| nRF52840, nRF54L15 | `nrf_radio_common.c` has no state callback and the ARM mote's `ui_radio_state` op is NULL | not tracked at all |
+| CPU (all) | `lpm_ns` accrues cycle-exactly at each LPM fast-forward (`msp430_cpu.c`), active = elapsed − lpm; read once through `cpu_power_ns` at the end of the run (`emit_cpu_state_obs`) | totals exact; no transitions, LPM0–4 lumped, nothing mid-run |
+| gating | `sim_runtime_radio_state_tracking` is on only when the energest plugin or the UI is attached | otherwise no transitions are emitted |
+
+Work, in order:
+
+1. **State callback in the CC2420 and Nordic models.** `cc2420.c` has a single `set_state`
+   funnel like the CC2538's; add the same callback there and in `nrf_radio_common.c`, stamped
+   with the mote's cycle clock, and retire the polled path for radio state. This makes Sky and
+   Z1 exact and gives the Nordic boards data at all.
+2. **CPU transitions as events.** Emit a `cpu` event on each active/LPM transition with the LPM
+   level, stamped from the cycle clock; keep the end-of-run totals as a cross-check.
+3. **Time in state per node in `result.json`**, in nanoseconds per radio state (off, on, tx,
+   rx, interfered) and per CPU state, computed from the transition stream, with the definition
+   string saying exactly that. The transitions in `events.ndjson` are the time series; nothing
+   is sampled.
+4. **Tracking always on when a run directory is requested.** The gate stays for plain runs so
+   existing output is byte-identical.
+5. **Agreement test against the firmware's own energest.** Contiki-NG's energest counts rtimer
+   ticks per state from inside the emulated mote. On the same run, the simulator's dwell times
+   and the firmware's tick counts must agree within one rtimer tick (Sky: 1/32768 s ≈ 30.5 µs).
+   Pin it as a regression. Where silicon traces exist, the same comparison against hardware is
+   the second bar. This is the fidelity claim.
+
+The CC2420 and MSP430 current tables in `energest_engine.c` leave the simulator and become a
+script in the spec repo (`tools/energy.py`, time-in-state × a per-board current table the user
+supplies). The engine's 64-mote cap goes with it.
+
+### Metrics (second)
+
+Radio duty cycle follows directly from time in state and is well defined; ship it first with
+its definition string.
 
 Packet delivery ratio, latency and retransmissions need packet identity, which the radio
 observer does not carry. Decide one of:

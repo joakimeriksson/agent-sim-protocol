@@ -8,38 +8,172 @@
   "maxProperties": 1,
   "properties": {
     "log_contains": {
-      "type": "object", "required": ["text"],
-      "properties": { "node": { "type": "integer", "minimum": 1 }, "text": { "type": "string" }, "count": { "type": "integer", "minimum": 1 } }
+      "type": "object",
+      "required": [
+        "text"
+      ],
+      "properties": {
+        "node": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "text": {
+          "type": "string"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
     },
     "log_matches": {
-      "type": "object", "required": ["regex"],
-      "properties": { "node": { "type": "integer", "minimum": 1 }, "regex": { "type": "string" }, "count": { "type": "integer", "minimum": 1 } }
+      "type": "object",
+      "required": [
+        "regex"
+      ],
+      "properties": {
+        "node": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "regex": {
+          "type": "string"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
     },
     "event_count": {
-      "type": "object", "required": ["type", "count"],
+      "type": "object",
+      "required": [
+        "type",
+        "count"
+      ],
       "properties": {
-        "type": { "type": "string" }, "node": { "type": "integer", "minimum": 1 },
-        "count": { "type": "integer", "minimum": 1 },
-        "since": { "enum": ["previous", "reset"], "default": "previous" }
+        "type": {
+          "type": "string"
+        },
+        "node": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "since": {
+          "enum": [
+            "previous",
+            "reset"
+          ],
+          "default": "previous"
+        }
       }
     },
     "no_event": {
-      "type": "object", "required": ["type"],
-      "description": "only meaningful in invariants",
-      "properties": { "type": { "type": "string" }, "node": { "type": "integer", "minimum": 1 } }
+      "type": "object",
+      "required": [
+        "type"
+      ],
+      "description": "only meaningful in invariants; for type log it takes the log filters text / regex / not_text",
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "node": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "text": {
+          "type": "string",
+          "description": "type log: the line contains this"
+        },
+        "regex": {
+          "type": "string",
+          "description": "type log: the line matches this"
+        },
+        "not_text": {
+          "type": "string",
+          "description": "type log: and the line does not contain this (key present without its expected value)"
+        }
+      }
     },
     "gpio_level": {
-      "type": "object", "required": ["pin", "value"],
-      "properties": { "node": { "type": "integer", "minimum": 1 }, "pin": { "type": "integer", "minimum": 0 }, "value": { "enum": [0, 1] }, "within_ms": { "type": "number", "minimum": 0 } }
+      "type": "object",
+      "required": [
+        "pin",
+        "value"
+      ],
+      "properties": {
+        "node": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "pin": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "value": {
+          "enum": [
+            0,
+            1
+          ]
+        },
+        "within_ms": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
     },
     "time": {
-      "type": "object", "required": ["t"],
-      "properties": { "t": { "type": "integer", "minimum": 0 } }
+      "type": "object",
+      "required": [
+        "t"
+      ],
+      "properties": {
+        "t": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
     },
     "metric": {
-      "type": "object", "required": ["name", "op", "value"],
-      "properties": { "name": { "type": "string" }, "op": { "enum": ["<", "<=", "==", ">=", ">"] }, "value": { "type": "number" } }
+      "type": "object",
+      "required": [
+        "name",
+        "op",
+        "value"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "op": {
+          "enum": [
+            "<",
+            "<=",
+            "==",
+            ">=",
+            ">"
+          ]
+        },
+        "value": {
+          "type": "number"
+        }
+      }
+    },
+    "all_of": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "$ref": "#"
+      },
+      "description": "satisfied in any order within one window; members may not be metric, no_event or all_of (checker rule R11)"
     }
   },
-  "additionalProperties": { "type": "object" }
+  "additionalProperties": {
+    "type": "object"
+  }
 }

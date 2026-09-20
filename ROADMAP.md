@@ -116,7 +116,18 @@ Order of work: M0 corpus check (now, no implementation needed) → M1 (Cooja-NG,
 → M4 metrics and multi-seed (Cooja-NG only) → M2 conditions (Cooja-NG, then esp32sim) → M3 →
 M5 → M6. The milestone numbers are kept as names; the sequence is what changed.
 
-### M0 — Corpus check (S, spec repo, now)
+### M0 — Corpus check (S, spec repo, done 2026-09-20)
+
+Result (`conformance/corpus/contiki-ng-tests.md`): 93 tests, 42 distinct scripts. Of the 85
+judged inside the simulator, 36 (42%) fit the condition set as first written. Four additions
+bring that to 79 (93%) and were made to the spec because of it: log filters on `no_event`
+(17 tests, and it is what csim's `fail_on` already is), `then` actions on an `expect` entry
+(12 tests, the shell-driven ping tests), a log-derived sequence metric (10 tests, the RPL
+delivery tests; lands with M4), and `all_of` (4 tests). Six tests keep JS: seeded random
+placement computed in the script, a hop count rebuilt from visualizer lines, cross-line and
+cross-field comparisons. Eight are real-time border-router runs judged by an external driver.
+
+Original task description:
 
 The cheapest validation of the hardest part of the spec, and it needs no implementation:
 convert the 93 upstream Contiki-NG Cooja tests with csim's `tools/csc2json.py`, classify each
@@ -220,6 +231,10 @@ csim (S to M), first:
   with the right windows. No change to the config format yet.
 - accept the shared names as an alternative spelling in `test.expect` and `test.invariants`,
   alongside the existing `steps`, `validators` and `fail_on`.
+- the M0 additions: `no_event` with log filters (this is `fail_on`, plus `not_text` and `node`),
+  `then` actions on an `expect` entry with `not_before_ms`, and `all_of`. Acceptance: the 79
+  corpus tests in categories A and B1–B4 convert with `csc2json.py` to `expect`/`invariants`
+  without JS and keep their verdicts over the upstream seed loop.
 - `--wall-timeout`; its expiry is the only `timeout` (6).
 - `metric` conditions in `expect`, evaluated at the end of the run over the M4 metrics.
 
@@ -267,8 +282,12 @@ boards are not tracked at all; CPU transitions with LPM level; time in state per
 tick. Energy conversion leaves the simulator and becomes `tools/energy.py` here. Then duty
 cycle PDR, latency and route churn over Contiki-NG log conventions, definitions
 stated. `seeds: [...]` loop in `test_runner` with one run directory per seed and an aggregate
-`result.json` that never conceals a failed seed. Metrics land in `result.json` only; `metric`
-as a condition arrives with M2, which introduces the `expect` spelling. The spec repo adds
+`result.json` that never conceals a failed seed. The first log-convention metric is the application sequence
+metric the corpus check asked for: a configurable regex with one capture over the app's
+delivery lines (upstream: `Data received from … <seq>`), reporting `received`, `lost`,
+`max_seq` and `last_gap_seq`; ten upstream RPL tests are exactly thresholds on these. Metrics
+land in `result.json` only; `metric` as a condition arrives with M2, which introduces the
+`expect` spelling. The spec repo adds
 `schema/metrics.json` as provisional until esp32sim has any metric at all (instruction count
 and simulation time qualify).
 

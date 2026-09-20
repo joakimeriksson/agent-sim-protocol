@@ -1,0 +1,10 @@
+protocol: agent-sim/0.3
+simulator: x
+version: "1"
+seed: 1
+config:
+  expect:
+    - log_contains: { text: "prompt" }
+      then: [ { name: send, args: { node: 1, data: "ping" } } ]
+actions:
+  - { action_seq: 0, t: 100, name: send, applied: true, args: { node: 1, data: "ping" } }

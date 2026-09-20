@@ -228,6 +228,12 @@ Option 1 is cheap and matches the test suite; option 2 is protocol-agnostic but 
 frames, not application packets. Pick 1 for v0.2, name it in the metric definition, and keep 2
 as a future medium service.
 
+The first of these is the application sequence metric: a regex with one capture over the
+delivery lines, per receiving node, reporting `received`, `lost` (gaps in the sequence),
+`max_seq` and `last_gap_seq`. Ten upstream RPL tests are thresholds on exactly these values
+(`lost == 0`, `max_seq >= 62 and last_gap_seq <= 45`), so they are the acceptance tests. PDR
+is `received / (received + lost)` from the same counters.
+
 Route churn and convergence time are log-derived (RPL parent switches, DAG join) and belong to
 option 1 as well.
 
@@ -251,6 +257,14 @@ expect:
 A `metric` in `expect` is evaluated at the end of the run (the spec's window rule: a metric is
 evaluated when its window closes); an unavailable metric makes the verdict `inconclusive`, not
 a pass, exit 1.
+
+From the corpus check (`conformance/corpus/contiki-ng-tests.md`): `fail_on` becomes `no_event`
+with log filters, gaining `not_text` and `node`; `then` actions on an `expect` entry cover the
+shell-driven tests that today need JS (`write(mote, "ping …")` when a line appears); `all_of`
+covers unordered checks in one window. `csc2json.py` should emit these instead of attaching
+the JS for the 79 tests in categories A and B1–B4, and keep the JS for the six that need it.
+The eight TUN border-router tests stay as they are: real-time, `deterministic: false`, verdict
+from the external driver's exit status, which the runner already supports.
 
 JS scripts remain the escape hatch and are advertised as such.
 

@@ -31,6 +31,6 @@ test:
   expect:                       # sequential; each window starts where the previous was reached
     - log_contains: { node: 1, text: "Received request", count: 1 }
     - log_contains: { node: 4, text: "Received response", count: 1 }
-    - log_contains: { node: 4, text: "Received response", count: 3, since: previous }
+    - log_contains: { node: 4, text: "Received response", count: 3 }
   invariants:                   # run-wide; a hit ends the run (maps onto fail_on)
-    - no_event: { type: log_matches, regex: "parent switch: -> \\(NULL" }
+    - no_event: { type: log, text: "parent switch: -> (NULL" }

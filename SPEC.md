@@ -255,7 +255,8 @@ which it supports:
 | --- | --- | --- |
 | `log_contains` / `log_matches` | event | a console line (per node or any) contains text / matches a regex, optional `count` |
 | `event_count` | event | N events of a type have been seen (`tx`, `rx`, `exception`, …) |
-| `no_event` | event | no event of a type occurs; only meaningful in `invariants` (below) |
+| `no_event` | event | no event of a type occurs; only meaningful in `invariants` (below). For `type: log` it takes the log filters `text`, `regex`, `not_text` and `node`, so "no line containing X", and "no line containing the key without the expected value", are invariants |
+| `all_of` | event | a list of event or state conditions, satisfied in any order within one window; reached at the event that completes the last one. Members may not be `metric`, `no_event` or another `all_of` |
 | `gpio_level` | state | a pin holds a value |
 | `time` | state | simulation time has reached `t` |
 | `metric` | state | a named metric compares against a threshold |
@@ -309,6 +310,14 @@ exception-recovery firmware is testable: assert on it with an invariant or with 
 or leave it alone.
 
 `invariants` maps onto Cooja-NG's existing `fail_on`.
+
+An `expect` entry may carry `then`: a list of actions applied at the `t` the entry is reached,
+with an optional `not_before_ms` floor on simulation time. This is how a scenario file expresses
+stimulus that depends on an observation ("when the shell prompt appears, send the command"),
+which a session does by interleaving `run_until` and `action`. `then` actions are validated and
+recorded like any other; in `scenario.replay.yaml` they appear in `actions` with their effective
+`t`, and the embedded config's `expect` entries carry no `then`, so a replay never fires them
+twice.
 
 Two rules that close the list:
 
@@ -504,7 +513,7 @@ distinguish assertion, guest failure and timeout; an inconclusive verdict exits 
 
 Still open. Implement in both simulators and answer:
 
-1. Is the closed condition set sufficient? Measured on the 93 upstream Contiki-NG Cooja tests: how many express fully in `expect` and `invariants`, how many need JS. Does esp32sim also need a scripted escape hatch?
+1. Is the closed condition set sufficient? Measured on the 93 upstream Contiki-NG Cooja tests (`conformance/corpus/contiki-ng-tests.md`, 2026-09-20): of the 85 whose verdict is decided inside the simulator, 36 (42%) fit the set as first written and 79 (93%) fit after four additions made because of that result: log filters on `no_event`, `then` actions on an `expect` entry, `all_of`, and a log-derived sequence metric (Cooja-NG, M4). Six keep the JS escape hatch; eight are real-time runs judged by an external driver and are outside `expect`. Still open: does esp32sim need a scripted escape hatch?
 2. Which operations need a persistent session, versus the batch CLI? (Guess: only interactive debugging.)
 3. Which metric concepts belong in the protocol versus simulator-specific namespaces?
 4. Do generated MCP tools from capability schemas work without manual editing?

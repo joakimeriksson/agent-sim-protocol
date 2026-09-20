@@ -180,6 +180,10 @@ def check_result(doc: Any, rep: Report) -> None:
             rep.warn("W-R7", f"conditions[{i}] uses simulator-specific condition {name!r}")
         if c["kind"] == "expect" and name == "no_event":
             rep.error("R8", f"conditions[{i}]: no_event in expect; it belongs in invariants")
+        if name == "all_of":
+            bad = [k for m in c["condition"]["all_of"] for k in m if k in ("metric", "no_event", "all_of")]
+            if bad:
+                rep.error("R11", f"conditions[{i}]: all_of may not contain {sorted(set(bad))}")
     # R10: metric entries are trailing in expect
     kinds = [(next(iter(c["condition"])) == "metric") for c in doc.get("conditions", []) if c["kind"] == "expect"]
     if any(a and not b for a, b in zip(kinds, kinds[1:])):
@@ -237,6 +241,9 @@ def check_replay(doc: Any, rep: Report) -> None:
     embedded = cfg.get("actions") or (cfg.get("test") or {}).get("actions")
     if embedded:
         rep.error("P3", f"replay config embeds {len(embedded)} scheduled action(s); every action belongs in actions")
+    expect = cfg.get("expect") or (cfg.get("test") or {}).get("expect") or []
+    if any(isinstance(e, dict) and "then" in e for e in expect):
+        rep.error("P3", "replay config keeps `then` on an expect entry; its actions belong in actions")
 
 
 # ---------------------------------------------------------------- run directory

@@ -1,0 +1,9 @@
+{
+  "source": "recorded",
+  "spec": "agent-sim/0.3",
+  "simulator": "cooja-ng",
+  "commit": "1045b07 (branch feat/agent-m1-evidence, on cooja-ng a7317f2)",
+  "recorded": "2026-09-20",
+  "host": "macOS/arm64",
+  "note": "the same scenario with a move at 2 s and a remove at 170 s, cut short by --wall-timeout 250ms: exit 6, the remove is recorded with applied: false and has no action event. How far the run gets depends on the host, so this vector is not reproducible byte for byte"
+}

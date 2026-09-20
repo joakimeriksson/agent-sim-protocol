@@ -1,0 +1,186 @@
+{"type":"mote_added","t":0,"node":1,"seq":0}
+{"type":"mote_added","t":0,"node":2,"seq":1}
+{"type":"mote_added","t":0,"node":3,"seq":2}
+{"type":"mote_added","t":0,"node":4,"seq":3}
+{"type":"led","t":612090799,"node":3,"seq":4,"leds":[1,0,0]}
+{"type":"led","t":612090799,"node":3,"seq":5,"leds":[1,0,1]}
+{"type":"radio","t":615575799,"node":3,"seq":6,"state":"on"}
+{"type":"log","t":617107799,"node":3,"seq":7,"line":"[INFO: Main      ] Starting Contiki-NG-release/v5.1-164-gf15d82e66"}
+{"type":"log","t":618322799,"node":3,"seq":8,"line":"[INFO: Main      ] - Routing: RPL Lite"}
+{"type":"log","t":619489799,"node":3,"seq":9,"line":"[INFO: Main      ] - Net: sicslowpan"}
+{"type":"log","t":620535799,"node":3,"seq":10,"line":"[INFO: Main      ] - MAC: CSMA"}
+{"type":"log","t":622372799,"node":3,"seq":11,"line":"[INFO: Main      ] - 802.15.4 PANID: 0xabcd"}
+{"type":"log","t":624086799,"node":3,"seq":12,"line":"[INFO: Main      ] - 802.15.4 Default channel: 26"}
+{"type":"log","t":625430799,"node":3,"seq":13,"line":"[INFO: Main      ] Node ID: 771"}
+{"type":"log","t":629301799,"node":3,"seq":14,"line":"[INFO: Main      ] Link-layer address: 0012.7403.0003.0303"}
+{"type":"log","t":637522799,"node":3,"seq":15,"line":"[INFO: Main      ] Tentative link-local IPv6 address: fe80::212:7403:3:303"}
+{"type":"log","t":639387799,"node":3,"seq":16,"line":"[INFO: Sky       ] CC2420 CCA threshold -45"}
+{"type":"led","t":639424799,"node":3,"seq":17,"leds":[1,1,1]}
+{"type":"led","t":665090799,"node":4,"seq":18,"leds":[1,0,0]}
+{"type":"led","t":665090799,"node":4,"seq":19,"leds":[1,0,1]}
+{"type":"radio","t":668575799,"node":4,"seq":20,"state":"on"}
+{"type":"log","t":670107799,"node":4,"seq":21,"line":"[INFO: Main      ] Starting Contiki-NG-release/v5.1-164-gf15d82e66"}
+{"type":"log","t":671322799,"node":4,"seq":22,"line":"[INFO: Main      ] - Routing: RPL Lite"}
+{"type":"log","t":672489799,"node":4,"seq":23,"line":"[INFO: Main      ] - Net: sicslowpan"}
+{"type":"log","t":673535799,"node":4,"seq":24,"line":"[INFO: Main      ] - MAC: CSMA"}
+{"type":"log","t":675372799,"node":4,"seq":25,"line":"[INFO: Main      ] - 802.15.4 PANID: 0xabcd"}
+{"type":"log","t":677086799,"node":4,"seq":26,"line":"[INFO: Main      ] - 802.15.4 Default channel: 26"}
+{"type":"log","t":678530799,"node":4,"seq":27,"line":"[INFO: Main      ] Node ID: 1028"}
+{"type":"log","t":682402799,"node":4,"seq":28,"line":"[INFO: Main      ] Link-layer address: 0012.7404.0004.0404"}
+{"type":"log","t":690680799,"node":4,"seq":29,"line":"[INFO: Main      ] Tentative link-local IPv6 address: fe80::212:7404:4:404"}
+{"type":"log","t":692484799,"node":4,"seq":30,"line":"[INFO: Sky       ] CC2420 CCA threshold -45"}
+{"type":"led","t":692521799,"node":4,"seq":31,"leds":[1,1,1]}
+{"type":"led","t":885904588,"node":1,"seq":32,"leds":[1,0,0]}
+{"type":"led","t":885904588,"node":1,"seq":33,"leds":[1,0,1]}
+{"type":"radio","t":889604588,"node":1,"seq":34,"state":"on"}
+{"type":"log","t":891136588,"node":1,"seq":35,"line":"[INFO: Main      ] Starting Contiki-NG-release/v5.1-164-gf15d82e66"}
+{"type":"log","t":892351588,"node":1,"seq":36,"line":"[INFO: Main      ] - Routing: RPL Lite"}
+{"type":"log","t":893517588,"node":1,"seq":37,"line":"[INFO: Main      ] - Net: sicslowpan"}
+{"type":"log","t":894564588,"node":1,"seq":38,"line":"[INFO: Main      ] - MAC: CSMA"}
+{"type":"log","t":896401588,"node":1,"seq":39,"line":"[INFO: Main      ] - 802.15.4 PANID: 0xabcd"}
+{"type":"log","t":898115588,"node":1,"seq":40,"line":"[INFO: Main      ] - 802.15.4 Default channel: 26"}
+{"type":"log","t":899455588,"node":1,"seq":41,"line":"[INFO: Main      ] Node ID: 257"}
+{"type":"log","t":903327588,"node":1,"seq":42,"line":"[INFO: Main      ] Link-layer address: 0012.7401.0001.0101"}
+{"type":"log","t":911607588,"node":1,"seq":43,"line":"[INFO: Main      ] Tentative link-local IPv6 address: fe80::212:7401:1:101"}
+{"type":"log","t":913410588,"node":1,"seq":44,"line":"[INFO: Sky       ] CC2420 CCA threshold -45"}
+{"type":"led","t":913448588,"node":1,"seq":45,"leds":[1,1,1]}
+{"type":"led","t":1123090799,"node":2,"seq":46,"leds":[1,0,0]}
+{"type":"led","t":1123090799,"node":2,"seq":47,"leds":[1,0,1]}
+{"type":"radio","t":1126575799,"node":2,"seq":48,"state":"on"}
+{"type":"log","t":1128107799,"node":2,"seq":49,"line":"[INFO: Main      ] Starting Contiki-NG-release/v5.1-164-gf15d82e66"}
+{"type":"log","t":1129322799,"node":2,"seq":50,"line":"[INFO: Main      ] - Routing: RPL Lite"}
+{"type":"log","t":1130489799,"node":2,"seq":51,"line":"[INFO: Main      ] - Net: sicslowpan"}
+{"type":"log","t":1131535799,"node":2,"seq":52,"line":"[INFO: Main      ] - MAC: CSMA"}
+{"type":"log","t":1133372799,"node":2,"seq":53,"line":"[INFO: Main      ] - 802.15.4 PANID: 0xabcd"}
+{"type":"log","t":1135086799,"node":2,"seq":54,"line":"[INFO: Main      ] - 802.15.4 Default channel: 26"}
+{"type":"log","t":1136429799,"node":2,"seq":55,"line":"[INFO: Main      ] Node ID: 514"}
+{"type":"log","t":1140300799,"node":2,"seq":56,"line":"[INFO: Main      ] Link-layer address: 0012.7402.0002.0202"}
+{"type":"log","t":1148519799,"node":2,"seq":57,"line":"[INFO: Main      ] Tentative link-local IPv6 address: fe80::212:7402:2:202"}
+{"type":"log","t":1150383799,"node":2,"seq":58,"line":"[INFO: Sky       ] CC2420 CCA threshold -45"}
+{"type":"led","t":1150421799,"node":2,"seq":59,"leds":[1,1,1]}
+{"type":"log","t":4379391799,"node":4,"seq":60,"line":"[INFO: App       ] Not reachable yet"}
+{"type":"radio","t":4624485588,"node":1,"seq":61,"state":"tx"}
+{"type":"radio","t":4624838588,"node":2,"seq":62,"state":"rx"}
+{"type":"tx","t":4628005588,"node":1,"seq":63,"start":4624709588,"ch":26,"len":97,"frame":"41d8c6cdabffff01010100017412007a3b3a1a9b0116fe00f0008008f00000fd000000000000000212740100010101040e00080c00040000800001001e003c081e4040ffffffffffffffff00000000fd0000000000000000000000000000005351"}
+{"type":"radio","t":4628015588,"node":2,"seq":64,"state":"off"}
+{"type":"radio","t":4628047588,"node":1,"seq":65,"state":"on"}
+{"type":"radio","t":4628142588,"node":2,"seq":66,"state":"on"}
+{"type":"log","t":7084203799,"node":3,"seq":67,"line":"[INFO: App       ] Not reachable yet"}
+{"type":"radio","t":8494554588,"node":2,"seq":68,"state":"tx"}
+{"type":"radio","t":8494907588,"node":1,"seq":69,"state":"rx"}
+{"type":"radio","t":8494907588,"node":3,"seq":70,"state":"rx"}
+{"type":"tx","t":8498234588,"node":2,"seq":71,"start":8494778588,"ch":26,"len":102,"frame":"61dc7ecdab010101000174120002020200027412007a333a9b01a00100f0ffff08f00000fd000000000000000212740100010101040e00080c00040000800001001e003c081e4040ffffffffffffffff00000000fd00000000000000000000000000000061d7"}
+{"type":"radio","t":8498240588,"node":1,"seq":72,"state":"tx"}
+{"type":"radio","t":8498240588,"node":3,"seq":73,"state":"off"}
+{"type":"radio","t":8498272588,"node":2,"seq":74,"state":"on"}
+{"type":"radio","t":8498367588,"node":3,"seq":75,"state":"on"}
+{"type":"radio","t":8498623588,"node":2,"seq":76,"state":"rx"}
+{"type":"tx","t":8498847588,"node":1,"seq":77,"start":8498495588,"ch":26,"len":5,"frame":"02007e412f"}
+{"type":"radio","t":8498847588,"node":2,"seq":78,"state":"off"}
+{"type":"radio","t":8498879588,"node":1,"seq":79,"state":"on"}
+{"type":"radio","t":8498976588,"node":2,"seq":80,"state":"on"}
+{"type":"log","t":9423421588,"node":2,"seq":81,"line":"[INFO: App       ] Not reachable yet"}
+{"type":"radio","t":10163548588,"node":1,"seq":82,"state":"tx"}
+{"type":"radio","t":10163901588,"node":2,"seq":83,"state":"rx"}
+{"type":"tx","t":10167068588,"node":1,"seq":84,"start":10163772588,"ch":26,"len":97,"frame":"41d8c7cdabffff01010100017412007a3b3a1a9b0116fe00f0008008f00000fd000000000000000212740100010101040e00080c00040000800001001e003c081e4040ffffffffffffffff00000000fd0000000000000000000000000000008046"}
+{"type":"radio","t":10167074588,"node":2,"seq":85,"state":"off"}
+{"type":"radio","t":10167106588,"node":1,"seq":86,"state":"on"}
+{"type":"radio","t":10167201588,"node":2,"seq":87,"state":"on"}
+{"type":"radio","t":10713305588,"node":2,"seq":88,"state":"tx"}
+{"type":"radio","t":10713658588,"node":1,"seq":89,"state":"rx"}
+{"type":"radio","t":10713658588,"node":3,"seq":90,"state":"rx"}
+{"type":"tx","t":10716984588,"node":2,"seq":91,"start":10713528588,"ch":26,"len":102,"frame":"61dc7fcdab010101000174120002020200027412007a333a9b01a00100f0ffff08f00000fd000000000000000212740100010101040e00080c00040000800001001e003c081e4040ffffffffffffffff00000000fd0000000000000000000000000000001aa1"}
+{"type":"radio","t":10716992588,"node":1,"seq":92,"state":"tx"}
+{"type":"radio","t":10716992588,"node":3,"seq":93,"state":"off"}
+{"type":"radio","t":10717025588,"node":2,"seq":94,"state":"on"}
+{"type":"radio","t":10717119588,"node":3,"seq":95,"state":"on"}
+{"type":"radio","t":10717375588,"node":2,"seq":96,"state":"rx"}
+{"type":"tx","t":10717599588,"node":1,"seq":97,"start":10717247588,"ch":26,"len":5,"frame":"02007fc83e"}
+{"type":"radio","t":10717599588,"node":2,"seq":98,"state":"off"}
+{"type":"radio","t":10717631588,"node":1,"seq":99,"state":"on"}
+{"type":"radio","t":10717727588,"node":2,"seq":100,"state":"on"}
+{"type":"radio","t":10885562588,"node":2,"seq":101,"state":"tx"}
+{"type":"radio","t":10885915588,"node":1,"seq":102,"state":"rx"}
+{"type":"radio","t":10885915588,"node":3,"seq":103,"state":"rx"}
+{"type":"tx","t":10889241588,"node":2,"seq":104,"start":10885785588,"ch":26,"len":102,"frame":"61dc80cdab010101000174120002020200027412007a333a9b01a00100f0ffff08f00000fd000000000000000212740100010101040e00080c00040000800001001e003c081e4040ffffffffffffffff00000000fd000000000000000000000000000000df38"}
+{"type":"radio","t":10889249588,"node":1,"seq":105,"state":"tx"}
+{"type":"radio","t":10889249588,"node":3,"seq":106,"state":"off"}
+{"type":"radio","t":10889281588,"node":2,"seq":107,"state":"on"}
+{"type":"radio","t":10889376588,"node":3,"seq":108,"state":"on"}
+{"type":"radio","t":10889632588,"node":2,"seq":109,"state":"rx"}
+{"type":"tx","t":10889856588,"node":1,"seq":110,"start":10889504588,"ch":26,"len":5,"frame":"020080b031"}
+{"type":"radio","t":10889856588,"node":2,"seq":111,"state":"off"}
+{"type":"radio","t":10889888588,"node":1,"seq":112,"state":"on"}
+{"type":"radio","t":10889984588,"node":2,"seq":113,"state":"on"}
+{"type":"radio","t":12994962588,"node":2,"seq":114,"state":"tx"}
+{"type":"radio","t":12995315588,"node":1,"seq":115,"state":"rx"}
+{"type":"radio","t":12995315588,"node":3,"seq":116,"state":"rx"}
+{"type":"tx","t":12998642588,"node":2,"seq":117,"start":12995186588,"ch":26,"len":102,"frame":"61dc81cdab010101000174120002020200027412007a333a9b01a00100f0ffff08f00000fd000000000000000212740100010101040e00080c00040000800001001e003c081e4040ffffffffffffffff00000000fd000000000000000000000000000000a44e"}
+{"type":"radio","t":12998644588,"node":1,"seq":118,"state":"tx"}
+{"type":"radio","t":12998644588,"node":3,"seq":119,"state":"off"}
+{"type":"radio","t":12998676588,"node":2,"seq":120,"state":"on"}
+{"type":"radio","t":12998771588,"node":3,"seq":121,"state":"on"}
+{"type":"radio","t":12999027588,"node":2,"seq":122,"state":"rx"}
+{"type":"tx","t":12999251588,"node":1,"seq":123,"start":12998899588,"ch":26,"len":5,"frame":"0200813920"}
+{"type":"radio","t":12999251588,"node":2,"seq":124,"state":"off"}
+{"type":"radio","t":12999283588,"node":1,"seq":125,"state":"on"}
+{"type":"radio","t":12999380588,"node":2,"seq":126,"state":"on"}
+{"type":"log","t":15176285799,"node":4,"seq":127,"line":"[INFO: App       ] Not reachable yet"}
+{"type":"radio","t":17572519588,"node":2,"seq":128,"state":"tx"}
+{"type":"radio","t":17572872588,"node":1,"seq":129,"state":"rx"}
+{"type":"radio","t":17572872588,"node":3,"seq":130,"state":"rx"}
+{"type":"tx","t":17575654588,"node":2,"seq":131,"start":17572742588,"ch":26,"len":85,"frame":"61dc82cdab010101000174120002020200027412007ef700e03a0663040000013c9b0284fc008000f105120080fd00000000000000021274020002020206140000001efd0000000000000002127401000101014d51"}
+{"type":"radio","t":17575663588,"node":1,"seq":132,"state":"tx"}
+{"type":"radio","t":17575663588,"node":3,"seq":133,"state":"off"}
+{"type":"radio","t":17575696588,"node":2,"seq":134,"state":"on"}
+{"type":"radio","t":17575790588,"node":3,"seq":135,"state":"on"}
+{"type":"radio","t":17576046588,"node":2,"seq":136,"state":"rx"}
+{"type":"tx","t":17576270588,"node":1,"seq":137,"start":17575918588,"ch":26,"len":5,"frame":"020082a212"}
+{"type":"radio","t":17576270588,"node":2,"seq":138,"state":"off"}
+{"type":"radio","t":17576302588,"node":1,"seq":139,"state":"on"}
+{"type":"radio","t":17576399588,"node":2,"seq":140,"state":"on"}
+{"type":"radio","t":17623973588,"node":1,"seq":141,"state":"tx"}
+{"type":"radio","t":17624326588,"node":2,"seq":142,"state":"rx"}
+{"type":"tx","t":17625765588,"node":1,"seq":143,"start":17624197588,"ch":26,"len":43,"frame":"61dcc8cdab020202000274120001010100017412007ef700e23a060300ff0000009b038a890000f1001c67"}
+{"type":"radio","t":17625767588,"node":2,"seq":144,"state":"tx"}
+{"type":"radio","t":17625800588,"node":1,"seq":145,"state":"on"}
+{"type":"radio","t":17626150588,"node":1,"seq":146,"state":"rx"}
+{"type":"radio","t":17626150588,"node":3,"seq":147,"state":"rx"}
+{"type":"tx","t":17626374588,"node":2,"seq":148,"start":17626022588,"ch":26,"len":5,"frame":"0200c8fcff"}
+{"type":"radio","t":17626376588,"node":1,"seq":149,"state":"off"}
+{"type":"radio","t":17626376588,"node":3,"seq":150,"state":"off"}
+{"type":"radio","t":17626407588,"node":2,"seq":151,"state":"on"}
+{"type":"radio","t":17626503588,"node":3,"seq":152,"state":"on"}
+{"type":"radio","t":17626505588,"node":1,"seq":153,"state":"on"}
+{"type":"log","t":17631097588,"node":3,"seq":154,"line":"[INFO: App       ] Not reachable yet"}
+{"type":"log","t":18995413588,"node":2,"seq":155,"line":"[INFO: App       ] Tx/Rx/MissedTx: 0/0/0"}
+{"type":"log","t":19000236588,"node":2,"seq":156,"line":"[INFO: App       ] Sending request 0 to fd00::212:7401:1:101"}
+{"type":"radio","t":19009750588,"node":2,"seq":157,"state":"tx"}
+{"type":"radio","t":19010103588,"node":1,"seq":158,"state":"rx"}
+{"type":"radio","t":19010103588,"node":3,"seq":159,"state":"rx"}
+{"type":"tx","t":19011702588,"node":2,"seq":160,"start":19009974588,"ch":26,"len":48,"frame":"61dc83cdab010101000174120002020200027412007ef700e106630400000136f0223d162e6a4368656c6c6f20303545"}
+{"type":"radio","t":19011706588,"node":1,"seq":161,"state":"tx"}
+{"type":"radio","t":19011706588,"node":3,"seq":162,"state":"off"}
+{"type":"radio","t":19011738588,"node":2,"seq":163,"state":"on"}
+{"type":"radio","t":19011833588,"node":3,"seq":164,"state":"on"}
+{"type":"radio","t":19012089588,"node":2,"seq":165,"state":"rx"}
+{"type":"tx","t":19012313588,"node":1,"seq":166,"start":19011961588,"ch":26,"len":5,"frame":"0200832b03"}
+{"type":"radio","t":19012313588,"node":2,"seq":167,"state":"off"}
+{"type":"radio","t":19012345588,"node":1,"seq":168,"state":"on"}
+{"type":"radio","t":19012441588,"node":2,"seq":169,"state":"on"}
+{"type":"log","t":19019314588,"node":1,"seq":170,"line":"[INFO: App       ] Received request 'hello 0' from fd00::212:7402:2:202"}
+{"type":"log","t":19020282588,"node":1,"seq":171,"line":"[INFO: App       ] Sending response."}
+{"type":"radio","t":19053704588,"node":1,"seq":172,"state":"tx"}
+{"type":"radio","t":19054057588,"node":2,"seq":173,"state":"rx"}
+{"type":"tx","t":19055656588,"node":1,"seq":174,"start":19053928588,"ch":26,"len":48,"frame":"61dcc9cdab020202000274120001010100017412007ef700e3060300ff000000f0162e223d6a4368656c6c6f2030141a"}
+{"type":"radio","t":19055660588,"node":2,"seq":175,"state":"tx"}
+{"type":"radio","t":19055692588,"node":1,"seq":176,"state":"on"}
+{"type":"radio","t":19056043588,"node":1,"seq":177,"state":"rx"}
+{"type":"radio","t":19056043588,"node":3,"seq":178,"state":"rx"}
+{"type":"tx","t":19056267588,"node":2,"seq":179,"start":19055915588,"ch":26,"len":5,"frame":"0200c975ee"}
+{"type":"radio","t":19056268588,"node":1,"seq":180,"state":"off"}
+{"type":"radio","t":19056268588,"node":3,"seq":181,"state":"off"}
+{"type":"radio","t":19056301588,"node":2,"seq":182,"state":"on"}
+{"type":"radio","t":19056395588,"node":3,"seq":183,"state":"on"}
+{"type":"radio","t":19056396588,"node":1,"seq":184,"state":"on"}
+{"type":"log","t":19063090588,"node":2,"seq":185,"line":"[INFO: App       ] Received response 'hello 0' from fd00::212:7401:1:101"}

@@ -35,5 +35,7 @@ uv run pytest -q
 every artifact referenced by it, and `capabilities.json` when present. This lets CI attach a
 small checksum file beside an archived run without extending a provisional simulator schema.
 
-The spec records what the implementations do; it does not lead them. Every vector today is
-hand-written and says so in its `meta.json`; the first recorded Cooja-NG run replaces its vector.
+The spec records what the implementations do; it does not lead them. The Cooja-NG vectors are
+recorded runs (M1: pass, assertion failure, configuration error, wall timeout);
+[M1_COOJA_NG_FINDINGS.md](M1_COOJA_NG_FINDINGS.md) lists what recording them turned up. The
+esp32sim vector is still hand-written and says so in its `meta.json`.

@@ -1,2 +1,9 @@
-{ "source": "hand-written", "spec": "agent-sim/0.3", "simulator": "cooja-ng",
-  "note": "intended M1 output of `cooja-ng run configs/chain-4node-sky.yaml` (csim); replace with a recorded run" }
+{
+  "source": "recorded",
+  "spec": "agent-sim/0.3",
+  "simulator": "cooja-ng",
+  "commit": "1045b07 (branch feat/agent-m1-evidence, on cooja-ng a7317f2)",
+  "recorded": "2026-09-20",
+  "host": "macOS/arm64",
+  "note": "`test_runner test configs/chain-4node-sky.yaml --run-dir out/m1-chain-4node-sky`: both validators met, run to its 180 s horizon"
+}

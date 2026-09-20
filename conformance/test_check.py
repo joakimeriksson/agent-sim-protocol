@@ -78,6 +78,28 @@ def test_run_dir_action_event_must_match_replay(tmp_path):
     assert "D4" in rep.rules()
 
 
+def test_run_dir_unapplied_action_has_no_event():
+    # recorded: a remove at 170 s still pending when the wall clock ended the run
+    rep = check.Report("run")
+    check.check_run_dir(VECTORS / "cooja-ng" / "m1-wall-timeout", rep)
+    assert "D4" not in rep.rules()
+
+
+def test_run_dir_applied_action_needs_its_event(tmp_path):
+    run_dir = tmp_path / "run"
+    shutil.copytree(VECTORS / "cooja-ng" / "m1-wall-timeout", run_dir)
+    replay_path = run_dir / "scenario.replay.yaml"
+    replay = check._read(replay_path, check.Report("read"))
+    pending = [a for a in replay["actions"] if not a["applied"]]
+    assert pending
+    pending[0]["applied"] = True
+    replay_path.write_text(yaml.safe_dump(replay, sort_keys=False), encoding="utf-8")
+
+    rep = check.Report("run")
+    check.check_run_dir(run_dir, rep)
+    assert "D4" in rep.rules()
+
+
 def test_artifact_manifest_is_deterministic_and_hashed():
     run_dir = VECTORS / "esp32sim" / "m1-hello-s3"
     first_rep = check.Report("first")

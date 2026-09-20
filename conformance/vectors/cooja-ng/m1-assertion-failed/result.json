@@ -1,0 +1,31 @@
+{
+  "protocol": "agent-sim/0.3",
+  "simulator": "cooja-ng",
+  "version": "0.2.3",
+  "commit": "1045b07",
+  "run_dir": "out/m1-assertion-failed",
+  "verdict": "fail",
+  "termination_reason": "assertion_failed",
+  "exit_code": 1,
+  "error": "assertion_failed",
+  "seed": 42,
+  "deterministic": true,
+  "simulation_time_ns": 20211090799,
+  "wall_ms": 78.1,
+  "nodes": 4,
+  "firmware": [
+    { "path": "firmware/sky/udp-server.sky", "sha256": "819c73849854d9bda35301d206dd4a24b0b366616cdac6dcd6f83ac723fd9a44", "type": "sky-server", "node": 1 },
+    { "path": "firmware/sky/udp-client.sky", "sha256": "cf0ea7f2891992028395da50799146790427ec99a705c06dbceb0b6928279e90", "type": "sky-client", "node": 2 }
+  ],
+  "conditions": [
+    { "kind": "expect", "condition": {"log_contains": {"node": 1, "text": "Received request", "count": 1}}, "ok": true, "t": 19019314588, "seq": 170 },
+    { "kind": "expect", "condition": {"log_contains": {"node": 4, "text": "no such line is ever printed", "count": 1}}, "ok": false }
+  ],
+  "metrics": {},
+  "artifacts": {
+    "events": "events.ndjson",
+    "replay": "scenario.replay.yaml",
+    "config": "config.effective.yaml",
+    "capabilities": "capabilities.json"
+  }
+}

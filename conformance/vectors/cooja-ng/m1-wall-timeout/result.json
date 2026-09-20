@@ -1,0 +1,31 @@
+{
+  "protocol": "agent-sim/0.3",
+  "simulator": "cooja-ng",
+  "version": "0.2.3",
+  "commit": "1045b07",
+  "run_dir": "out/m1-wall-timeout",
+  "verdict": "inconclusive",
+  "termination_reason": "timeout_wall",
+  "exit_code": 6,
+  "error": "timeout",
+  "seed": 42,
+  "deterministic": true,
+  "simulation_time_ns": 56755131588,
+  "wall_ms": 259.1,
+  "nodes": 4,
+  "firmware": [
+    { "path": "firmware/sky/udp-server.sky", "sha256": "819c73849854d9bda35301d206dd4a24b0b366616cdac6dcd6f83ac723fd9a44", "type": "sky-server", "node": 1 },
+    { "path": "firmware/sky/udp-client.sky", "sha256": "cf0ea7f2891992028395da50799146790427ec99a705c06dbceb0b6928279e90", "type": "sky-client", "node": 2 }
+  ],
+  "conditions": [
+    { "kind": "expect", "condition": {"log_contains": {"node": 1, "text": "Received request", "count": 1}}, "ok": true, "t": 19019314588, "seq": 171 },
+    { "kind": "expect", "condition": {"log_contains": {"node": 4, "text": "Received response", "count": 1}}, "ok": true, "t": 45093641588, "seq": 716 }
+  ],
+  "metrics": {},
+  "artifacts": {
+    "events": "events.ndjson",
+    "replay": "scenario.replay.yaml",
+    "config": "config.effective.yaml",
+    "capabilities": "capabilities.json"
+  }
+}

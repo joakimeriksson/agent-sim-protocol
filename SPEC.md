@@ -8,12 +8,12 @@ when both do. Until then the schemas under `schema/` are the intended shape, not
 
 | concept | Cooja-NG | esp32sim |
 | --- | --- | --- |
-| `capabilities` | none | none |
-| `result.json` | none | none |
-| `events.ndjson` | none | none |
-| `scenario.replay.yaml` | none | none |
-| `expect` / `invariants` | none | none |
-| conditions, closed set | none | none |
+| `capabilities` | provisional (batch: `capabilities --json`) | none |
+| `result.json` | provisional | none |
+| `events.ndjson` | provisional (`log`, `tx`, `radio`, `led`, `action`, `mote_added`; no `rx` yet) | none |
+| `scenario.replay.yaml` | provisional (written; not yet loaded back by `run`) | none |
+| `expect` / `invariants` | provisional (`expect` recorded; no recorded invariant yet) | none |
+| conditions, closed set | provisional (`log_contains`) | none |
 | metrics | none | none |
 | session (`hello` … `terminate`) | none | none |
 | `cancel`, `wall_ms` | none | none |

@@ -1,62 +1,30 @@
 {
   "protocol": "agent-sim/0.3",
   "simulator": "cooja-ng",
-  "version": "0.1.1",
-  "commit": "a09e798",
-  "run_dir": "out/chain",
+  "version": "0.2.3",
+  "commit": "1045b07",
+  "run_dir": "out/m1-chain-4node-sky",
   "verdict": "pass",
   "termination_reason": "completed",
   "exit_code": 0,
   "seed": 42,
   "deterministic": true,
-  "simulation_time_ns": 180000000000,
-  "wall_ms": 412.5,
+  "simulation_time_ns": 180211090799,
+  "wall_ms": 771.0,
   "nodes": 4,
   "firmware": [
-    {
-      "path": "firmware/sky/udp-server.sky",
-      "sha256": "3f1a0c9e5b7d2a4f6c8e0b1d3f5a7c9e1b3d5f7a9c1e3b5d7f9a1c3e5b7d9f1a",
-      "type": "sky-server"
-    },
-    {
-      "path": "firmware/sky/udp-client.sky",
-      "sha256": "9c1e3b5d7f9a1c3e5b7d9f1a3f1a0c9e5b7d2a4f6c8e0b1d3f5a7c9e1b3d5f7a",
-      "type": "sky-client"
-    }
+    { "path": "firmware/sky/udp-server.sky", "sha256": "819c73849854d9bda35301d206dd4a24b0b366616cdac6dcd6f83ac723fd9a44", "type": "sky-server", "node": 1 },
+    { "path": "firmware/sky/udp-client.sky", "sha256": "cf0ea7f2891992028395da50799146790427ec99a705c06dbceb0b6928279e90", "type": "sky-client", "node": 2 }
   ],
   "conditions": [
-    {
-      "kind": "expect",
-      "condition": {
-        "log_contains": {
-          "node": 1,
-          "text": "Received request",
-          "count": 1
-        }
-      },
-      "ok": true,
-      "t": 41230000000,
-      "seq": 12
-    },
-    {
-      "kind": "expect",
-      "condition": {
-        "log_contains": {
-          "node": 4,
-          "text": "Received response",
-          "count": 1
-        }
-      },
-      "ok": true,
-      "t": 41780000000,
-      "seq": 14
-    }
+    { "kind": "expect", "condition": {"log_contains": {"node": 1, "text": "Received request", "count": 1}}, "ok": true, "t": 19019314588, "seq": 170 },
+    { "kind": "expect", "condition": {"log_contains": {"node": 4, "text": "Received response", "count": 1}}, "ok": true, "t": 45093642588, "seq": 715 }
   ],
   "metrics": {},
   "artifacts": {
     "events": "events.ndjson",
     "replay": "scenario.replay.yaml",
     "config": "config.effective.yaml",
-    "testlog": "COOJA.testlog"
+    "capabilities": "capabilities.json"
   }
 }

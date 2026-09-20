@@ -1,0 +1,52 @@
+{
+  "protocol": "agent-sim/0.3",
+  "simulator": "cooja-ng",
+  "version": "0.2.3",
+  "commit": "1045b07",
+  "targets": ["sky", "z1", "esb", "wismote", "exp5438", "fr5969", "cc2538dk", "zoul-firefly", "nrf52840-dongle", "nrf52840-dk", "nrf54l15-dk", "nrf54l15-xiao", "cooja", "js", "py", "renode"],
+  "operations": ["capabilities"],
+  "actions": {
+    "move": {
+      "description": "set a node's position (metres)",
+      "schema": {"type":"object","required":["node","x","y"],"properties":{"node":{"type":"integer","minimum":1},"x":{"type":"number"},"y":{"type":"number"}}}
+    },
+    "send": {
+      "description": "bytes into a node's console input",
+      "schema": {"type":"object","required":["node","data"],"properties":{"node":{"type":"integer","minimum":1},"data":{"type":"string"}}}
+    },
+    "send_all": {
+      "description": "bytes into every active node's console input",
+      "schema": {"type":"object","required":["data"],"properties":{"data":{"type":"string"}}}
+    },
+    "remove": {
+      "description": "stop stepping a node",
+      "schema": {"type":"object","required":["node"],"properties":{"node":{"type":"integer","minimum":1}}}
+    },
+    "add": {
+      "description": "re-add a node by rebooting it at the current time",
+      "schema": {"type":"object","required":["node"],"properties":{"node":{"type":"integer","minimum":1}}}
+    }
+  },
+  "observations": ["log", "tx", "radio", "led", "interference", "mote_added", "mote_removed", "action"],
+  "conditions": ["log_contains", "no_event"],
+  "metrics": {},
+  "media": ["udgm", "none"],
+  "services": ["timeline", "pcap", "progress", "json-test", "json-export", "js-test", "gdb", "energest", "renode", "shell"],
+  "determinism": {
+    "deterministic": true,
+    "seedable": true,
+    "breaks_with": ["--ui", "--shell", "--speed", "--realtime", "--renode", "serial_socket"],
+    "derivation": "one seed (config `seed`, or --seed); startup delays and medium success draws are taken from it"
+  },
+  "limitations": {
+    "stubs": [],
+    "unmodelled": [
+      "udgm: no capture effect, no path loss inside tx_range"
+    ],
+    "notes": [
+      "tx is recorded when the frame completes, stamped with its start; there is no rx event yet",
+      "radio and led states of MSP430 motes are sampled once per scheduler slice, so their t is the slice time, not the register write",
+      "send_all is recorded as one action without a node"
+    ]
+  }
+}

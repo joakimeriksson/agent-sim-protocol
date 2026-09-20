@@ -322,10 +322,11 @@ def check_run_dir(run_dir: Path, rep: Report) -> None:
             if c.get("seq") is not None and c["seq"] not in seqs:
                 rep.error("R9", f"conditions[{i}].seq={c['seq']} is not an event in events.ndjson")
 
-    # D4: every action in the replay appears as an action event, and vice versa
+    # D4: every applied action in the replay appears as an action event, and vice versa.
+    # An action recorded with applied: false never happened, so it has no event.
     if replay is not None:
         ev_seqs = sorted(ev["action_seq"] for ev in events if ev.get("type") == "action")
-        rp_seqs = sorted(a["action_seq"] for a in replay["actions"])
+        rp_seqs = sorted(a["action_seq"] for a in replay["actions"] if a.get("applied", True))
         if ev_seqs != rp_seqs:
             rep.error("D4", f"action_seq differ: events {ev_seqs} vs replay {rp_seqs}")
         else:
@@ -333,6 +334,8 @@ def check_run_dir(run_dir: Path, rep: Report) -> None:
                 ev["action_seq"]: ev for ev in events if ev.get("type") == "action"
             }
             for action in replay["actions"]:
+                if not action.get("applied", True):
+                    continue
                 event = event_actions[action["action_seq"]]
                 for field in ("t", "name"):
                     if event.get(field) != action.get(field):

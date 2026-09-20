@@ -111,6 +111,10 @@ Delta, not a new runner:
   artifact paths.
 - `--wall-timeout S`: a check in the outer loop against `get_time_ms()`; expiry is `timeout`
   (6), `termination_reason: timeout_wall`. Nothing bounds wall time today.
+- A run directory holding a `result.json` is refused without `--overwrite`; `result.json` is
+  written last. A configuration error (unknown medium, missing firmware) still writes a
+  `result.json` with `termination_reason: configuration_error` and no events when a run
+  directory was given.
 - Exit codes from the shared table in `SPEC.md`: 0 pass, 1 assertion, 2 configuration,
   3 unsupported, 4 simulator error, 5 guest halted, 6 wall-clock timeout, 7 cancelled. The
   current fail-loud cases (no criteria, no verdict, unknown medium) map to
@@ -137,7 +141,9 @@ Delta, not a new runner:
 
 `events.ndjson` is the observer stream serialized, one object per line, `t` in ns, event names
 shared with the lock-step protocol where the concept is the same (`log`, `tx`, `rx`, `radio`,
-`led`) and `node` on every event.
+`led`) and `node` on every event. `node` is the Cooja node id, which the observer already
+carries on log lines and which survives `remove` and `add`; it is never the mote slot index,
+which the runner reuses.
 
 New observation types only where the stream lacks them: routing events and topology changes
 (from log conventions or a Contiki-NG hook, decided per Phase 4), per-node energest counters at
@@ -157,6 +163,12 @@ Add, as timed actions and as control-plane actions:
 - clock perturbation only if a platform actually supports it; otherwise leave it out of capabilities
 
 All actions take effect at simulation time and are deterministic for a given experiment and seed.
+
+One action path. A node dragged in the web UI is a `move` action: it goes through the same
+validation as a scenario or session action and lands in `scenario.replay.yaml` with its
+effective `t` and `applied: true`. Today the UI drag reaches the medium directly; route it
+through the action dispatch site in the runner so a human-driven run is reproducible. The same
+holds for any future UI mutation (remove, add, serial input).
 
 ## Phase 4 — State timing and metrics
 

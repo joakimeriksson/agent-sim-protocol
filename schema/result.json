@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://joakimeriksson.github.io/agent-sim-protocol/schema/result.json",
   "title": "result.json",
-  "description": "agent-sim/0.3, provisional. Written into run_dir at the end of every run. wall_ms, commit and run_dir vary between identical runs and are the fields a golden strips.",
+  "description": "agent-sim/0.3, provisional. Written into run_dir at the end of every run. wall_ms, commit and run_dir vary between identical runs and are the fields a golden strips. Written even when the run never started (configuration_error, invalid_request, unsupported), with verdict inconclusive.",
   "type": "object",
   "required": [
     "protocol",
@@ -49,7 +49,10 @@
         "cancelled",
         "guest_failure",
         "peer_disconnect",
-        "simulator_error"
+        "simulator_error",
+        "configuration_error",
+        "invalid_request",
+        "unsupported"
       ]
     },
     "exit_code": {
@@ -191,13 +194,32 @@
     },
     "artifacts": {
       "type": "object",
-      "description": "name -> path relative to run_dir; events, replay and config are always present",
-      "required": [
-        "events",
-        "replay"
-      ],
+      "description": "name -> path relative to run_dir; events and replay are present on every run that started",
       "additionalProperties": {
         "$ref": "envelope.json#/$defs/relative_path"
+      }
+    }
+  },
+  "if": {
+    "properties": {
+      "termination_reason": {
+        "not": {
+          "enum": [
+            "configuration_error",
+            "invalid_request",
+            "unsupported"
+          ]
+        }
+      }
+    }
+  },
+  "then": {
+    "properties": {
+      "artifacts": {
+        "required": [
+          "events",
+          "replay"
+        ]
       }
     }
   }

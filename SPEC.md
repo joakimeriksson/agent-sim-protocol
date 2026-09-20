@@ -182,7 +182,9 @@ may use convenience units (`simulation_ms`) but results never do.
 
 Every event carries `node`, also in a standalone single-device simulator (`node: 1`), so a
 consumer never branches on whether the run was nested, and `seq`, its position in the run's
-event stream, strictly increasing, which is what condition windows are measured in.
+event stream, strictly increasing, which is what condition windows are measured in. `node` is
+the stable node identity: it survives `remove` and `add`, it is the same id inside a nested
+simulator and in the outer one, and it is never a slot index that can be reused.
 
 ```json
 {"type":"log","t":124100000,"node":1,"seq":812,"line":"ready"}
@@ -306,7 +308,17 @@ continue from, or the guest's own declared failure line (Cooja-NG's `testFailed`
 exception-recovery firmware is testable: assert on it with an invariant or with `event_count`,
 or leave it alone.
 
-`invariants` maps onto Cooja-NG's existing `fail_on`. Cooja-NG's JS scripts stay as an explicit,
+`invariants` maps onto Cooja-NG's existing `fail_on`.
+
+Two rules that close the list:
+
+- **`metric` entries are trailing.** They may appear only after the last event or state entry
+  of `expect`. A `metric` followed by another kind of entry is a `configuration_error`, since a
+  metric is evaluated when the run ends and nothing can come after it.
+- **The run stops at the last `expect`.** When the final non-metric entry is reached and no
+  invariant was hit, the run ends as `completed` at that `t`, the way Cooja's `testOK()` stops
+  the simulation. If `metric` entries are pending the run continues to its duration bound and
+  evaluates them there. A scenario with no `expect` runs to its duration. Cooja-NG's JS scripts stay as an explicit,
 simulator-specific escape hatch. A general predicate language is not standardized in this
 version.
 
@@ -333,10 +345,20 @@ uses it; a node id may enter a documented derivation but must not silently repla
 
 Every run, batch or session, writes `scenario.replay.yaml` into `run_dir`: the initial
 configuration, the effective seed, the resolved firmware and plugin hashes, and every accepted
-action with its effective `t` and sequence number. It is a valid scenario file for `run`, so the
+action with its effective `t` and `action_seq`. It is a valid scenario file for `run`, so the
 batch CLI is the replay tool and a session that an agent or human drove interactively replays
 without them. Final positions or a final live setup alone are not a replay of a run that moved,
 removed or re-added nodes.
+
+- **Accepted is not applied.** Each replay action carries `applied: true|false`. An action
+  still pending when the run was cancelled or cut short is recorded with `applied: false` and
+  its scheduled `t`, so the file states what would have happened, and a full replay applies it.
+- **Actions live in one place.** The embedded `config` carries no scheduled actions of its own;
+  every action, whether it came from the scenario file, a session request or a GUI gesture, is
+  in `actions`. A replay therefore never applies an action twice.
+- **Every mutation path records.** A GUI drag that moves a node is a `move` action and goes
+  through the same validation and the same replay entry as an agent's request. A run a human
+  drove is reproducible or it is not a run.
 
 ## Evidence and artifacts
 
@@ -371,6 +393,12 @@ coverage, register accesses and metric inputs are added on request or on failure
 `result.json` carries fields that vary between identical runs (wall time, commit, the run
 directory). A golden test compares `events.ndjson` byte for byte and `result.json` with those
 fields stripped; `--run-dir` fixes the directory so tests never see a timestamp.
+
+A run directory is fresh. A simulator refuses a `run_dir` that already holds a `result.json`
+unless `--overwrite` is given, and writes `result.json` last, so a reader never sees an old
+verdict next to a new run's exit code. A client removes any prior `result.json` before it
+invokes and treats a missing one after the invocation as "no result", never as the previous
+run's.
 
 ## Diagnostics
 
@@ -407,13 +435,21 @@ tells an agent in a shell loop the class without opening `result.json`:
 Simulation time running out is never `timeout`: with an `expect` pending it is
 `assertion_failed`, with nothing pending it is `completed`.
 
+The mapping is total. Whenever a run directory was requested, `result.json` is written even
+when the run never started: a bad scenario, a missing ROM or an unsupported operation produce
+`termination_reason` `configuration_error`, `invalid_request` or `unsupported`, verdict
+`inconclusive`, the exit code from the table, and whatever artifacts exist (possibly none).
+Without a run directory the same error goes to stderr as one JSON line with the same fields.
+
 Exit code 3 exists so agents do not treat unsupported simulator behavior as a firmware defect.
 Cooja-NG's existing fail-loud contract (no criteria, script without verdict, unknown medium)
 maps to `configuration_error`.
 
 Results carry independent `termination_reason` (completed, assertion_failed, timeout_wall,
-cancelled, guest_failure, peer_disconnect, simulator_error) and `verdict` (pass, fail,
-inconclusive) fields. A completed run with an inconclusive or unavailable metric is
+cancelled, guest_failure, peer_disconnect, simulator_error, configuration_error,
+invalid_request, unsupported) and `verdict` (pass, fail, inconclusive) fields. Verdict is
+`pass` only for `completed`; `fail` for assertion_failed and guest_failure; `inconclusive`
+for everything else and for a completed run with an unavailable metric. A completed run with an inconclusive or unavailable metric is
 `inconclusive`, not a pass.
 
 ## Simulator bug workflow
@@ -457,7 +493,9 @@ What each simulator has today is inventoried in the two plans (`ESP32SIM_AGENT_P
 
 ## v0.3 validation questions
 
-Decided so far: artifacts are files in a run directory; snapshots are out; assert is a flag on
+Decided so far (2026-09-20 additions: total outcome mapping, the run stops at the last
+`expect`, `metric` entries are trailing, replay records `applied`, run directories are fresh,
+`node` is a stable identity): artifacts are files in a run directory; snapshots are out; assert is a flag on
 `run_until`; time is ns; `expect` is sequential and `invariants` are run-wide, with the windows
 above measured in `seq`; a metric is evaluated when its window closes; an expired window is an
 assertion failure and `timeout` is the wall-clock bound only; an invariant hit is an assertion

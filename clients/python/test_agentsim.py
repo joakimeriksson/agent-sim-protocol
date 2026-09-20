@@ -44,3 +44,12 @@ def test_artifact_rejects_path_outside_run_dir(tmp_path):
     )
     with pytest.raises(agentsim.ProtocolError, match="escapes run directory"):
         run.artifact("events")
+
+
+def test_run_removes_stale_result(tmp_path):
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    (run_dir / "result.json").write_text('{"verdict": "pass"}')
+    # a "simulator" that exits 2 and writes nothing
+    r = agentsim.run(["sh", "-c", "exit 2"], "x.yaml", run_dir)
+    assert r.exit_code == 2 and r.result is None

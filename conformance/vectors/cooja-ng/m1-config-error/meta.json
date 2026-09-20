@@ -1,0 +1,1 @@
+{ "source": "hand-written", "spec": "agent-sim/0.3", "simulator": "cooja-ng", "note": "intended result of `cooja-ng run` on a config naming an unknown medium; no run started, no events" }

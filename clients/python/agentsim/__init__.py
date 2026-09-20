@@ -91,6 +91,10 @@ def run(cmd: Sequence[str], scenario: str | Path, run_dir: str | Path,
     the exit code is the protocol's answer."""
     run_dir = Path(run_dir)
     run_dir.mkdir(parents=True, exist_ok=True)
+    # A run directory is fresh: never return a previous run's verdict next to this run's exit code.
+    stale = run_dir / "result.json"
+    if stale.exists():
+        stale.unlink()
     argv = [*cmd, "run", str(scenario), "--run-dir", str(run_dir), *extra_args]
     if wall_timeout is not None:
         argv += ["--wall-timeout", str(int(wall_timeout))]

@@ -54,7 +54,7 @@
     },
     "config": {
       "type": "object",
-      "description": "the simulator's own scenario/config document as it was at reset, before any action"
+      "description": "the simulator's own scenario/config document as it was at reset, with no scheduled actions of its own: every action is in `actions`"
     },
     "actions": {
       "type": "array",
@@ -63,7 +63,8 @@
         "required": [
           "action_seq",
           "t",
-          "name"
+          "name",
+          "applied"
         ],
         "properties": {
           "action_seq": {
@@ -83,6 +84,10 @@
           "node": {
             "type": "integer",
             "minimum": 1
+          },
+          "applied": {
+            "type": "boolean",
+            "description": "false for an action still pending when the run was cancelled or cut short; a full replay applies it"
           }
         }
       }

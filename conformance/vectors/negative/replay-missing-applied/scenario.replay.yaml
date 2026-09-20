@@ -1,0 +1,7 @@
+protocol: agent-sim/0.3
+simulator: x
+version: "1"
+seed: 1
+config: {}
+actions:
+  - { action_seq: 0, t: 100, name: move, args: { node: 1, x: 0, y: 0 } }

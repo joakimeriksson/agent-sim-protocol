@@ -76,7 +76,9 @@ priority 5:
   3 unsupported, 4 simulator error, 5 guest halted (panic, abort, unrecoverable fault),
   6 wall-clock timeout, 7 cancelled. A recovered exception is an `exception` event, not a
   failure; `max_seconds` expiring with an `expect` pending is an assertion failure.
-- `--wall-timeout S` next to `--max-seconds`.
+- `--wall-timeout S` next to `--max-seconds`. A run directory holding a `result.json` is refused
+  without `--overwrite`; a missing ROM or a bad scenario still writes a `result.json` with
+  `termination_reason: configuration_error` when a run directory was given.
 
 In `--cooja` mode stdin and stdout belong to csim; the control plane is refused there and
 diagnostics go to the run directory or through the lock-step reply (Cooja-NG plan, Phase 10).

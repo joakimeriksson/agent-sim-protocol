@@ -34,16 +34,29 @@ HERE = Path(__file__).resolve().parent
 SCHEMA_DIR = HERE.parent / "schema"
 SCHEMAS = ["envelope", "capabilities", "conditions", "result", "events", "replay"]
 
-# exit code expected for each termination_reason; None means "depends on the verdict"
-EXIT_FOR_REASON = {
-    "completed": None,
-    "assertion_failed": 1,
-    "timeout_wall": 6,
-    "cancelled": 7,
-    "guest_failure": 5,
-    "peer_disconnect": 4,
-    "simulator_error": 4,
+SUPPORTED_PROTOCOLS = {"agent-sim/0.3"}   # the versions this checker ships schemas for
+
+# (exit code, verdict) required by each termination_reason; a None verdict means pass or
+# inconclusive (completed: pass, or inconclusive when a metric is unavailable)
+OUTCOME_FOR_REASON = {
+    "completed":           (None, None),
+    "assertion_failed":    (1, "fail"),
+    "guest_failure":       (5, "fail"),
+    "timeout_wall":        (6, "inconclusive"),
+    "cancelled":           (7, "inconclusive"),
+    "peer_disconnect":     (4, "inconclusive"),
+    "simulator_error":     (4, "inconclusive"),
+    "configuration_error": (2, "inconclusive"),
+    "invalid_request":     (2, "inconclusive"),
+    "unsupported":         (3, "inconclusive"),
 }
+STARTUP_REASONS = {"configuration_error", "invalid_request", "unsupported"}
+
+
+def _check_protocol(doc: Any, rep: Report) -> None:
+    v = doc.get("protocol") if isinstance(doc, dict) else None
+    if v is not None and v not in SUPPORTED_PROTOCOLS:
+        rep.error("V1", f"protocol {v!r} is not one this checker supports: {sorted(SUPPORTED_PROTOCOLS)}")
 
 
 @dataclass
@@ -122,6 +135,7 @@ def _read(path: Path, rep: Report) -> Any:
 def check_capabilities(doc: Any, rep: Report) -> None:
     if not _schema_errors("capabilities", doc, rep, "S-CAP"):
         return
+    _check_protocol(doc, rep)
     # C2: every action schema must itself be a valid JSON Schema
     for name, a in doc.get("actions", {}).items():
         try:
@@ -140,19 +154,18 @@ def check_capabilities(doc: Any, rep: Report) -> None:
 def check_result(doc: Any, rep: Report) -> None:
     if not _schema_errors("result", doc, rep, "S-RES"):
         return
+    _check_protocol(doc, rep)
     verdict, reason, code = doc["verdict"], doc["termination_reason"], doc["exit_code"]
-    # R1: exit code follows termination_reason and verdict
-    expected = EXIT_FOR_REASON[reason]
-    if expected is None:
-        expected = 0 if verdict == "pass" else 1
-    if code != expected:
-        rep.error("R1", f"exit_code {code} but termination_reason={reason}, verdict={verdict} requires {expected}")
-    if reason == "completed" and verdict == "fail" and not any(
-        not c["ok"] for c in doc.get("conditions", [])
-    ):
-        rep.error("R1", "verdict fail on a completed run with no failed condition and no error")
-    if reason != "completed" and verdict == "pass":
-        rep.error("R1", f"verdict pass with termination_reason={reason}")
+    # R1: the outcome mapping is total: termination_reason fixes exit code and verdict
+    exp_code, exp_verdict = OUTCOME_FOR_REASON[reason]
+    if reason == "completed":
+        if verdict == "fail":
+            rep.error("R1", "verdict fail on a completed run (a failed expect is assertion_failed)")
+        exp_code = 0 if verdict == "pass" else 1
+    elif verdict != exp_verdict:
+        rep.error("R1", f"termination_reason={reason} requires verdict {exp_verdict}, got {verdict}")
+    if code != exp_code:
+        rep.error("R1", f"exit_code {code} but termination_reason={reason}, verdict={verdict} requires {exp_code}")
     # R2: a failed condition is never a pass; a pass has no failed condition
     failed = [c for c in doc.get("conditions", []) if not c["ok"]]
     if failed and verdict == "pass":
@@ -167,6 +180,10 @@ def check_result(doc: Any, rep: Report) -> None:
             rep.warn("W-R7", f"conditions[{i}] uses simulator-specific condition {name!r}")
         if c["kind"] == "expect" and name == "no_event":
             rep.error("R8", f"conditions[{i}]: no_event in expect; it belongs in invariants")
+    # R10: metric entries are trailing in expect
+    kinds = [(next(iter(c["condition"])) == "metric") for c in doc.get("conditions", []) if c["kind"] == "expect"]
+    if any(a and not b for a, b in zip(kinds, kinds[1:])):
+        rep.error("R10", "a metric expect entry is followed by a non-metric one; metrics are trailing")
 
 
 def check_events(lines: Iterable[str], rep: Report) -> list:
@@ -215,6 +232,11 @@ def check_replay(doc: Any, rep: Report) -> None:
     ts = [a["t"] for a in acts]
     if any(b < a for a, b in zip(ts, ts[1:])):
         rep.error("P1", f"actions.t goes backwards: {ts}")
+    # P3: the embedded config carries no scheduled actions of its own
+    cfg = doc.get("config") or {}
+    embedded = cfg.get("actions") or (cfg.get("test") or {}).get("actions")
+    if embedded:
+        rep.error("P3", f"replay config embeds {len(embedded)} scheduled action(s); every action belongs in actions")
 
 
 # ---------------------------------------------------------------- run directory
@@ -244,6 +266,12 @@ def check_run_dir(run_dir: Path, rep: Report) -> None:
         elif not p.is_file():
             rep.error("D2", f"artifacts.{name} = {rel!r} is not a regular file")
 
+    if result["termination_reason"] in STARTUP_REASONS:
+        # the run never started: a result, an exit code, whatever artifacts exist, nothing else
+        if any(k in result["artifacts"] for k in ("events", "replay")):
+            rep.warn("W-D6", "startup failure with events/replay artifacts; check they are truthful")
+        return
+
     events_rel = result["artifacts"]["events"]
     replay_rel = result["artifacts"]["replay"]
     events = []
@@ -253,6 +281,10 @@ def check_run_dir(run_dir: Path, rep: Report) -> None:
     replay = _read(run_dir / replay_rel, rep) if (run_dir / replay_rel).exists() else None
     if replay is not None:
         check_replay(replay, rep)
+        # P2: an unapplied action is only possible when the run was cut short
+        pending = [a["action_seq"] for a in replay.get("actions", []) if not a.get("applied", True)]
+        if pending and result["termination_reason"] == "completed":
+            rep.error("P2", f"actions {pending} not applied on a completed run")
 
     caps = None
     caps_path = run_dir / "capabilities.json"

@@ -4,6 +4,10 @@ Companion to `SPEC.md`, `COOJA_NG_AGENT_PLAN.md` and `ESP32SIM_AGENT_PLAN.md`.
 This document answers two questions: where the protocol lives, and in what order the two
 simulators implement it.
 
+The current implementation review and prioritized follow-up actions are recorded in
+[`REVIEW_ACTIONS.md`](REVIEW_ACTIONS.md). It is guidance for the plans, not additional protocol
+surface; the implementation-first and recorded-vector rules below still govern any spec change.
+
 ## 0. The goal: close the loop
 
 The point of all of this is to close the OODA loop for agents developing firmware, network
@@ -181,9 +185,12 @@ esp32sim (M), after Cooja-NG's vector is recorded:
   byte, `result.json` with wall time, commit and run directory stripped.
 - a CI step running `check.py`.
 
-Exit criterion: `agentsim run cooja-ng examples/cooja-ng-rpl-chain.yaml` returns a validated
-`result.json` and its output is the recorded vector; then the same for
-`agentsim run esp32sim examples/esp32sim-button.yaml`.
+Exit criterion: four recorded run kinds from Cooja-NG, each replacing a hand-written vector:
+a pass, an assertion failure with evidence, a configuration error (unknown medium) with a
+`result.json` and no events, and a wall-timeout or cancellation with partial artifacts and
+`applied: false` actions in the replay. Then the same four from esp32sim.
+`agentsim run cooja-ng examples/cooja-ng-rpl-chain.yaml` returns the validated pass result.
+A run directory that already holds a `result.json` is refused without `--overwrite`.
 
 ### M2 — Conditions and scenarios (M+M)
 
@@ -192,8 +199,16 @@ Comes after M4 in the sequence, with M0's corpus table as its input.
 Goal: the shared closed condition set works in both with the `seq`-based evaluation windows in
 `SPEC.md`, `expect` is sequential and `invariants` are run-wide, an expired `expect` window and
 an invariant hit are both `assertion_failed` (1), a halted guest is `guest_failure` (5), the
-wall-clock bound is `timeout` (6), `metric` conditions in `expect` are evaluated at the end of
-the run, and `scenario.replay.yaml` runs back through `run`.
+wall-clock bound is `timeout` (6), the run stops at the last non-metric `expect`, `metric`
+entries are trailing and evaluated at the end of the run, and `scenario.replay.yaml` runs back
+through `run` with `applied` set per action and no actions embedded in its config.
+
+Executable examples, as recorded vectors from Cooja-NG: the first entry's window from `seq` 0;
+two events at the same `t` where only the second satisfies the entry; an entry whose window
+expires exactly at the run's duration; cancellation with a pending action; the run stopping at
+the last `expect` before its duration. Resource flags for CI: `--max-events` and
+`--max-output-bytes` next to `--wall-timeout`, each ending the run as `cancelled` with partial
+evidence kept.
 
 Spec repo (S): `schema/conditions.json` with the window rules, `scenario-common.json` with
 `expect` and `invariants`; `run_until` and `wall_ms` semantics written down from what the
@@ -277,6 +292,18 @@ esp32sim (M), the loop-closure proof: the deliberately broken ESP-IDF project un
 `examples/`, the acceptance run with a fresh agent given only `capabilities --json`, and the
 second demo that exposes a known emulator defect and ends in a regression plus fix. Both record
 the loop metrics.
+
+Guards on the loop metrics, so weakening an assertion never looks like progress: the demo's
+acceptance scenarios are protected, the agent can edit firmware and add scenarios but the
+protected `expect` lists are what iterations-to-pass is counted against; and any experiment
+where an agent optimises a scenario over seeds reports held-out seeds it never saw. Five seeds
+are a smoke test, not a conclusion.
+
+Three acceptance workflows, one action path: a human configures and manipulates a run in the
+Cooja-NG UI and exports `scenario.replay.yaml`; CI runs that file with `--wall-timeout` and
+`--max-events` and archives the run directory on failure; an agent reads the same evidence and
+changes the scenario through the same validated actions. A GUI gesture that is not in the
+replay file fails the first workflow.
 
 ### M6 — Streaming session and nested diagnostics (M+M)
 

@@ -1,0 +1,17 @@
+{
+  "protocol": "agent-sim/0.3",
+  "simulator": "cooja-ng",
+  "version": "0.1.1",
+  "commit": "a09e798",
+  "run_dir": "out/bad",
+  "verdict": "inconclusive",
+  "termination_reason": "configuration_error",
+  "exit_code": 2,
+  "error": "configuration_error",
+  "seed": 42,
+  "deterministic": true,
+  "simulation_time_ns": 0,
+  "wall_ms": 3.0,
+  "message": "medium: unknown type 'lossy-typo' (no plugin registers it)",
+  "artifacts": {}
+}

@@ -14,6 +14,7 @@ diagnostics, over NDJSON and a batch CLI.
 | [SPEC.md](SPEC.md) | the protocol |
 | [AGENTS.md](AGENTS.md) | rules for coding agents working on this repo |
 | [ROADMAP.md](ROADMAP.md) | the goal, where the spec lives, and the six milestones to two conforming simulators |
+| [REVIEW_ACTIONS.md](REVIEW_ACTIONS.md) | implementation review findings and the prioritized follow-up actions |
 | [ESP32SIM_AGENT_PLAN.md](ESP32SIM_AGENT_PLAN.md) | esp32sim plan, as a delta against the emulator (to move to `esp32sim/docs/agent-plan.md`) |
 | [COOJA_NG_AGENT_PLAN.md](COOJA_NG_AGENT_PLAN.md) | Cooja-NG plan, as a delta against csim (to move to `csim/docs/design/agent-plan.md`) |
 

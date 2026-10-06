@@ -13,7 +13,7 @@ diagnostics, over NDJSON and a batch CLI.
 | --- | --- |
 | [SPEC.md](SPEC.md) | the protocol |
 | [AGENTS.md](AGENTS.md) | rules for coding agents working on this repo |
-| [ROADMAP.md](ROADMAP.md) | the goal, where the spec lives, and the six milestones to two conforming simulators |
+| [ROADMAP.md](ROADMAP.md) | the goal, sequencing, and milestones to two conforming simulators |
 | [REVIEW_ACTIONS.md](REVIEW_ACTIONS.md) | implementation review findings and the prioritized follow-up actions |
 | [ESP32SIM_AGENT_PLAN.md](ESP32SIM_AGENT_PLAN.md) | esp32sim plan, as a delta against the emulator (to move to `esp32sim/docs/agent-plan.md`) |
 | [COOJA_NG_AGENT_PLAN.md](COOJA_NG_AGENT_PLAN.md) | Cooja-NG plan, as a delta against csim (to move to `csim/docs/design/agent-plan.md`) |
@@ -22,6 +22,7 @@ diagnostics, over NDJSON and a batch CLI.
 | [conformance/check.py](conformance/check.py) | the checker a simulator's CI runs on its own output; `conformance/vectors/` holds the vectors |
 | [clients/python/agentsim](clients/python/agentsim/__init__.py) | minimal batch client: `capabilities`, `run`, read a run directory |
 | [examples/](examples/) | one scenario per simulator in the shared spelling |
+| [tools/rundir2ui.py](tools/rundir2ui.py) | fold a run directory into a Cooja-NG web-UI replay file, playable from static files (`index.html?replay=…`) |
 
 ```sh
 uv sync --group dev
